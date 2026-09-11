@@ -10,6 +10,14 @@ OPENAI_MODEL = "gpt-5.4"
 # https://developers.openai.com/api/reference/resources/$shared#(resource)%20%24shared%20%3E%20(model)%20reasoning_effort%20%3E%20(schema)
 OPENAI_THINKING_LEVEL = "low"
 
+########## GOOGLE ##########
+
+# https://ai.google.dev/gemini-api/docs/models
+GOOGLE_MODEL = "gemini-3.1-pro-preview"
+# https://ai.google.dev/gemini-api/docs/gemini-3?hl=de#thinking_level
+# https://ai.google.dev/gemini-api/docs/thinking#thinking-levels
+GOOGLE_THINKING_LEVEL = "low"
+
 ########## OLLAMA ##########
 
 # Where Ollama is hosted
