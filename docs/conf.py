@@ -11,9 +11,9 @@ sys.path.insert(0, os.path.abspath("../src/"))
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = "Example"
-copyright = "2026, Your Name"
-author = "Your Name"
+project = "TranslationQC"
+copyright = "2026, Bioinformatics Research Group, FH OÖ Campus Hagenberg"
+author = "Micha Johannes Birklbauer"
 version = "0.1"
 release = "0.1.0"
 
@@ -39,39 +39,29 @@ python_maximum_signature_line_length = 88
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_title = "Example"
-html_short_title = "Example"
+html_title = "TranslationQC"
+html_short_title = "TranslationQC"
 html_logo = "icons/icon.png"
 html_favicon = "icons/favicon.png"
 html_theme = "pydata_sphinx_theme"
 html_show_sourcelink = False
 html_theme_options = {
     "logo": {
-        "alt_text": "Example logo",
-        "text": "Example",
+        "alt_text": "TranslationQC logo",
+        "text": "TranslationQC",
         "image_light": "icons/icon.png",
         "image_dark": "icons/icon.png",
     },
     "header_links_before_dropdown": 6,
     "external_links": [
         {"name": "guide", "url": "https://packaging.python.org/"},
-        {"name": "uv", "url": "https://docs.astral.sh/uv/"},
-        {"name": "ruff", "url": "https://docs.astral.sh/ruff/"},
-        {"name": "ty", "url": "https://docs.astral.sh/ty/"},
-        {"name": "pyright", "url": "https://microsoft.github.io/pyright"},
-        {"name": "pytest", "url": "https://docs.pytest.org/en/stable/"},
     ],
     "icon_links": [
         {
             "name": "GitHub",
-            "url": "https://github.com/michabirklbauer/python-pkg_template",
+            "url": "https://github.com/",
             "icon": "fa-brands fa-github",
             "type": "fontawesome",
-        },
-        {
-            "name": "PyPI",
-            "url": "https://pypi.org/project/your-package-name",
-            "icon": "fa-brands fa-python",
         },
     ],
     "show_toc_level": 2,

@@ -7,6 +7,24 @@
 
 
 def test1():
-    from python_pkg_template import main
+    import os
+    from qc_bench import main
 
-    assert main(["-f", "data/characters.csv"]) == 0
+    # only run this locally
+    if os.path.isfile("env.json"):
+        assert (
+            main(
+                [
+                    "-i",
+                    "data/test.csv",
+                    "-o",
+                    "data/test_annotated.csv",
+                    "--openai",
+                    "--anthropic",
+                    "--google",
+                    "--ollama",
+                ]
+            )
+            == 0
+        )
+    assert True
