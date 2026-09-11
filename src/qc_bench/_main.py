@@ -104,7 +104,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             logger.info(f"Selected Ollama model: {judge.ollama_model}")
 
         df, _result = annotate_csv(
-            input_file=args.input, output_file=args.output, judge=judge
+            input_file=args.input, judge=judge, output_file=args.output
         )
         print(df)
 

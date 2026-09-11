@@ -12,25 +12,46 @@ from tqdm import tqdm
 
 from ._judge import Judge, JudgeResult
 
+from typing import Optional
+
 logger = logging.getLogger(__name__)
 
 
 def annotate_csv(
-    input_file: str, output_file: str, judge: Judge
+    input_file: str, judge: Judge, output_file: Optional[str] = None
 ) -> tuple[pl.DataFrame, list[JudgeResult]]:
-    r"""Creates a list of characters from a file.
+    r"""Quality estimation for a list of translations in a '.csv' file using LLMs.
 
     Parameters
     ----------
     input_file : str
-        The filename of the input ``csv`` file.
+        Path/name of the translations '.csv' file containing the columns ``src``, ``mt``, ``src_lang``, and ``mt_lang``.
+    judge : Judge
+        The judge to be used for quality estimation.
+    output_file : str, or None, default = None
+        Path/name of the ouput file that should be written to disk. If ``None`` nothing is written to disk.
 
     Returns
     -------
+    tuple of polars.DataFrame and list of JudgeResult
+        Results as a ``polars.DataFrame`` and as list of ``JudgeResult``.
 
     Examples
     --------
-    >>>
+    >>> from qc_bench import annotate_csv, Judge
+    >>> judge = Judge(openai=False, anthropic=False, google=False, ollama="mistral:7b")
+    >>> annotate_csv("data/test.csv", judge=judge)
+    Annotating data/test.csv...: 100%|█████████████████████████████████████████████████████████████████████████████████████| 1/1 [00:04<00:00,  4.96s/it]
+    (shape: (1, 8)
+    ┌──────────────────────────────────┬──────────────────┬──────────┬─────────┬──────────────┬─────────────────┬──────────────┬─────────────────────────┐
+    │ src                              ┆ mt               ┆ src_lang ┆ mt_lang ┆ score_openai ┆ score_anthropic ┆ score_google ┆ score_ollama_mistral:7b │
+    │ ---                              ┆ ---              ┆ ---      ┆ ---     ┆ ---          ┆ ---             ┆ ---          ┆ ---                     │
+    │ str                              ┆ str              ┆ str      ┆ str     ┆ f64          ┆ f64             ┆ f64          ┆ f64                     │
+    ╞══════════════════════════════════╪══════════════════╪══════════╪═════════╪══════════════╪═════════════════╪══════════════╪═════════════════════════╡
+    │ The lights are dimmable, but I…  ┆ Die Lichter sind ┆ English  ┆ German  ┆ NaN          ┆ NaN             ┆ NaN          ┆ 0.95                    │
+    │                                  ┆ dimmbar, aber…   ┆          ┆         ┆              ┆                 ┆              ┆                         │
+    └──────────────────────────────────┴──────────────────┴──────────┴─────────┴──────────────┴─────────────────┴──────────────┴─────────────────────────┘,
+    [])
     """
     # data collection
     score_openai: list[float] = list()
@@ -73,11 +94,13 @@ def annotate_csv(
         pl.Series("score_google", score_google),
         pl.Series(f"score_ollama_{judge.ollama_model}", score_ollama),
     )
-    logger.info(f"Finished annotation of {input_file}! Writing file to disk...")
+    logger.info(f"Finished annotation of {input_file}!")
     # saving
-    df.write_csv(output_file)
-    logger.info(f"Successfully wrote file {output_file}!")
-    with open(f"{output_file}.json", "w", encoding="utf-8") as f:
-        json.dump(json_data, f)
-    logger.info(f"Successfully wrote file {output_file}.json!")
+    if output_file is not None:
+        logger.info("Writing files to disk...")
+        df.write_csv(output_file)
+        logger.info(f"Successfully wrote file {output_file}!")
+        with open(f"{output_file}.json", "w", encoding="utf-8") as f:
+            json.dump(json_data, f)
+        logger.info(f"Successfully wrote file {output_file}.json!")
     return (df, raw_data)
