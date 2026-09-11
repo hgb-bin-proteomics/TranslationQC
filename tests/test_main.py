@@ -7,6 +7,6 @@
 
 
 def test1():
-    from python_pkg_template import main
+    from qc_bench import main
 
-    assert main(["-f", "data/characters.csv"]) == 0
+    assert main(["-i", "data/test.csv", "-o", "data/test_annotated.csv"]) == 0
