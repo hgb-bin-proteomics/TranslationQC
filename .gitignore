@@ -223,3 +223,6 @@ __marimo__/
 /html
 docs/modules.rst
 docs/main.rst
+
+# Environment files
+env.json
