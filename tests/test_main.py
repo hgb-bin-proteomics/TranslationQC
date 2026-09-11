@@ -12,5 +12,19 @@ def test1():
 
     # only run this locally
     if os.path.isfile("env.json"):
-        assert main(["-i", "data/test.csv", "-o", "data/test_annotated.csv"]) == 0
+        assert (
+            main(
+                [
+                    "-i",
+                    "data/test.csv",
+                    "-o",
+                    "data/test_annotated.csv",
+                    "--openai",
+                    "--anthropic",
+                    "--google",
+                    "--ollama",
+                ]
+            )
+            == 0
+        )
     assert True
