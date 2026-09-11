@@ -8,6 +8,7 @@ import time
 import json
 import logging
 from openai import OpenAI
+from anthropic import Anthropic
 from google.genai import Client as Google
 from google.genai import types as GoogleTypes  # noqa: N812
 from ollama import Client as Ollama
@@ -314,7 +315,19 @@ class _OpenAIModel:
 
 
 class _AnthropicModel:
-    pass
+    @staticmethod
+    def _get_anthropic_api_key() -> str:
+        if "ANTHROPIC_API_KEY" in os.environ:
+            logger.info("Got ANTHROPIC_API_KEY from environment.")
+            return os.environ.get("ANTHROPIC_API_KEY", "")
+        if os.path.isfile("env.json"):
+            with open("env.json", encoding="utf-8") as f:
+                env = json.load(f)
+                logger.info("Got ANTHROPIC_API_KEY from env.json file.")
+                return str(env["ANTHROPIC_API_KEY"]).strip()
+        logger.error("Could not get a token for Anthropic!")
+        raise RuntimeError("Could not get a token for Anthropic!")
+        return "err"
 
 
 class _GoogleModel:
@@ -785,7 +798,7 @@ class Judge:
     """
 
     __openai: OpenAI | None = None
-    __anthropic: None = None
+    __anthropic: Anthropic | None = None
     __google: Google | None = None
     __ollama: Ollama | None = None
     ollama_model: str = OLLAMA_DEFAULT_MODEL
@@ -803,6 +816,13 @@ class Judge:
             self.__openai = OpenAI(api_key=str(openai).strip())
         elif openai is None or openai:
             self.__openai = OpenAI(api_key=_OpenAIModel._get_openai_api_key())
+        # anthropic
+        if isinstance(anthropic, str):
+            self.__anthropic = Anthropic(api_key=str(anthropic).strip())
+        elif anthropic is None or anthropic:
+            self.__anthropic = Anthropic(
+                api_key=_AnthropicModel._get_anthropic_api_key()
+            )
         # google
         if isinstance(google, str):
             self.__google = Google(api_key=str(google).strip())
