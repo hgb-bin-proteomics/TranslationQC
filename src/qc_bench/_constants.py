@@ -10,6 +10,18 @@ OPENAI_MODEL = "gpt-5.4"
 # https://developers.openai.com/api/reference/resources/$shared#(resource)%20%24shared%20%3E%20(model)%20reasoning_effort%20%3E%20(schema)
 OPENAI_THINKING_LEVEL = "low"
 
+########## OLLAMA ##########
+# Where Ollama is hosted
+OLLAMA_HOST = "http://localhost:11434"
+# Ollama models: https://ollama.com/search
+# the default Ollama model to use
+OLLAMA_DEFAULT_MODEL = "qwen3.8:27b"
+# model in-memory duration
+# see https://docs.ollama.com/faq#how-do-i-keep-a-model-loaded-in-memory-or-make-it-unload-immediately
+# -1 seems to be safer, see https://github.com/ollama/ollama/issues/7645
+# KEEP_ALIVE = "5m"
+OLLAMA_KEEP_ALIVE = -1
+
 ########## GENERAL ##########
 
 # Max number generated output tokens, prevents infinite generation
@@ -18,3 +30,5 @@ MAX_OUTPUT_TOKENS = 2048
 MAX_RETRY = 5
 # Time to wait between failing requests in seconds
 RETRY_WAIT_TIME = 30.0
+# Random seeds - has to be of lenght MAX_RETRY + 1
+SEEDS = [1337, 10081995, 18041970, 1071966, 3082023, 24042025]
