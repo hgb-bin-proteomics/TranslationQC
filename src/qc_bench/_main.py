@@ -35,7 +35,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     """
 
     parser = argparse.ArgumentParser(
-        prog="qc_bench",
+        prog="qc-bench",
         description="Quality estimation for a list of translations using LLMs.",
         epilog="(c) Micha Birklbauer, 2026",
     )
@@ -44,7 +44,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         "--input",
         dest="input",
         required=True,
-        help="Path/name of the translations '.csv' file containing the columns 'src', 'mt', 'src_lang', and 'mt_lang' (str).",
+        help="path/name of the translations '.csv' file containing the columns 'src', 'mt', 'src_lang', and 'mt_lang' (str).",
         type=str,
     )
     parser.add_argument(
@@ -52,7 +52,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         "--output",
         dest="output",
         required=True,
-        help="Path/name of the ouput file that should be written to disk (str).",
+        help="path/name of the ouput file that should be written to disk (str).",
         type=str,
     )
     parser.add_argument(
@@ -60,28 +60,28 @@ def main(argv: Optional[list[str]] = None) -> int:
         dest="openai",
         action="store_true",
         default=False,
-        help="Use OpenAI model.",
+        help="use OpenAI model.",
     )
     parser.add_argument(
         "--anthropic",
         dest="anthropic",
         action="store_true",
         default=False,
-        help="Use Anthropic model.",
+        help="use Anthropic model.",
     )
     parser.add_argument(
         "--google",
         dest="google",
         action="store_true",
         default=False,
-        help="Use Google model.",
+        help="use Google model.",
     )
     parser.add_argument(
         "--ollama",
         dest="ollama",
         action="store_true",
         default=False,
-        help="Use Ollama model.",
+        help="use Ollama model.",
     )
     parser.add_argument("--version", action="version", version=__version__)
     args = parser.parse_args(argv)
