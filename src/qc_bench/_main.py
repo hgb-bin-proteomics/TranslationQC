@@ -64,7 +64,9 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     try:
         judge = Judge()
-        df, _result = annotate_csv(input_file=args.input_file, output_file=args.output_file, judge=judge)
+        df, _result = annotate_csv(
+            input_file=args.input_file, output_file=args.output_file, judge=judge
+        )
         print(df)
         logger.info("Successfully scored and annotated all translations!")
     except Exception as _e:

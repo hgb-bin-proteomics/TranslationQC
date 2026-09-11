@@ -6,17 +6,18 @@
 from __future__ import annotations
 
 import json
-import random
 import logging
 import polars as pl
 from tqdm import tqdm
 
-from ._judge import Judge
+from ._judge import Judge, JudgeResult
 
 logger = logging.getLogger(__name__)
 
 
-def annotate_csv(input_file: str, output_file: str, judge: Judge) -> Tuple[pl.DataFrame, list[JudgeResult]]:
+def annotate_csv(
+    input_file: str, output_file: str, judge: Judge
+) -> tuple[pl.DataFrame, list[JudgeResult]]:
     r"""Creates a list of characters from a file.
 
     Parameters
@@ -43,19 +44,34 @@ def annotate_csv(input_file: str, output_file: str, judge: Judge) -> Tuple[pl.Da
     df: pl.DataFrame = pl.read_csv(input_file)
     logger.info(f"Successfully read file {input_file}!")
     # annotation
-    for row in tqdm(df.iter_rows(named=True), total=df.shape[0], desc=f"Annotating {input_file}..."):
-        result = judge.score(src=str(row["src"]).strip(), mt=str(row["mt"]).strip())
+    for row in tqdm(
+        df.iter_rows(named=True), total=df.shape[0], desc=f"Annotating {input_file}..."
+    ):
+        result = judge.score(
+            src=str(row["src"]).strip(),
+            mt=str(row["mt"]).strip(),
+            src_lang=str(row["src_lang"]).strip(),
+            mt_lang=str(row["mt_lang"]).strip(),
+        )
         json_data.append(result.model_dump_json())
-        score_openai.append(result.openai.score)
-        score_anthropic.append(result.anthropic.score)
-        score_google.append(result.google.score)
-        score_ollama.append(result.ollama.score)
+        score_openai.append(
+            result.openai.score if result.openai is not None else float("nan")
+        )
+        score_anthropic.append(
+            result.anthropic.score if result.anthropic is not None else float("nan")
+        )
+        score_google.append(
+            result.google.score if result.google is not None else float("nan")
+        )
+        score_ollama.append(
+            result.ollama.score if result.ollama is not None else float("nan")
+        )
     # expansion
     df = df.with_columns(
         pl.Series("score_openai", score_openai),
         pl.Series("score_anthropic", score_anthropic),
         pl.Series("score_google", score_google),
-        pl.Series(f"score_ollama_{judge.ollama_model_name}", score_ollama),
+        pl.Series(f"score_ollama_{judge.ollama_model}", score_ollama),
     )
     logger.info(f"Finished annotation of {input_file}! Writing file to disk...")
     # saving
