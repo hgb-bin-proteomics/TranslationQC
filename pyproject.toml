@@ -1,0 +1,56 @@
+[build-system]
+requires = ["uv_build>=0.12.5,<0.13.0"]
+build-backend = "uv_build"
+
+[project]
+name = "python-pkg-template"
+version = "0.1.0"
+description = "Add your description here"
+keywords = ["example", "template"]
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [
+    { name = "Your Name", email = "your.mail@mail.com" },
+]
+maintainers = [
+    { name = "Your Name", email = "your.mail@mail.com" },
+]
+classifiers = [
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Development Status :: 5 - Production/Stable"
+]
+requires-python = ">=3.12"
+dependencies = [
+    "polars>=1.41.2",
+    "pydantic>=2.13.4",
+]
+
+[dependency-groups]
+dev = [
+    "pyright>=1.1.411",
+    "pytest>=9.1.1",
+    "ruff>=0.16.4",
+    "ty>=0.0.73",
+]
+docs = [
+    "myst-parser>=5.1.0",
+    "pydata-sphinx-theme>=0.20.0",
+    "sphinx>=9.1.0",
+    "sphinx-copybutton>=0.5.2",
+]
+
+[project.scripts]
+battle = "python_pkg_template:main"
+
+[project.urls]
+Homepage = "https://github.com/michabirklbauer/python-pkg_template"
+Documentation = "https://github.com/michabirklbauer/python-pkg_template"
+Repository = "https://github.com/michabirklbauer/python-pkg_template.git"
+Issues = "https://github.com/michabirklbauer/python-pkg_template/issues"

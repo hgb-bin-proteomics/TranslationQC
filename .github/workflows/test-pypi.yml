@@ -1,0 +1,31 @@
+name: Run tests on package from PyPI
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-release-package:
+
+    strategy:
+      matrix:
+        python-version: ['3.12', '3.13', '3.14']
+        os: ['ubuntu-latest', 'windows-latest', 'macos-latest']
+      fail-fast: false
+
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v5
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v6
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install pytest
+    - name: Install package from PyPI
+      run: |
+        python -m pip install <NAME-OF-YOUR-PACKAGE>
+    - name: Test with pytest
+      run: |
+        pytest tests/
