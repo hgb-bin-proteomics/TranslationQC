@@ -3,7 +3,7 @@ requires = ["uv_build>=0.12.5,<0.13.0"]
 build-backend = "uv_build"
 
 [project]
-name = "python-pkg-template"
+name = "qc-bench"
 version = "0.1.0"
 description = "Add your description here"
 keywords = ["example", "template"]
@@ -30,11 +30,11 @@ requires-python = ">=3.12"
 dependencies = [
     "polars>=1.41.2",
     "pydantic>=2.13.4",
+    "tqdm>=4.70.1",
 ]
 
 [dependency-groups]
 dev = [
-    "pyright>=1.1.411",
     "pytest>=9.1.1",
     "ruff>=0.16.4",
     "ty>=0.0.73",
@@ -47,7 +47,7 @@ docs = [
 ]
 
 [project.scripts]
-battle = "python_pkg_template:main"
+battle = "qc_bench:main"
 
 [project.urls]
 Homepage = "https://github.com/michabirklbauer/python-pkg_template"
