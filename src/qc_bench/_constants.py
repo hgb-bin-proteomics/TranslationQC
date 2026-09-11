@@ -11,11 +11,12 @@ OPENAI_MODEL = "gpt-5.4"
 OPENAI_THINKING_LEVEL = "low"
 
 ########## OLLAMA ##########
+
 # Where Ollama is hosted
 OLLAMA_HOST = "http://localhost:11434"
 # Ollama models: https://ollama.com/search
 # the default Ollama model to use
-OLLAMA_DEFAULT_MODEL = "qwen3.8:27b"
+OLLAMA_DEFAULT_MODEL = "gemma4:e4b"
 # model in-memory duration
 # see https://docs.ollama.com/faq#how-do-i-keep-a-model-loaded-in-memory-or-make-it-unload-immediately
 # -1 seems to be safer, see https://github.com/ollama/ollama/issues/7645
