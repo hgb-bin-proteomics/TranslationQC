@@ -886,7 +886,7 @@ class _OllamaModel:
             qe = QualityEstimation.model_validate_json(response.response)
             r = json.loads(response.response)
             logger.info(
-                "Successfully got a valid response after retry {retry} for one query."
+                f"Successfully got a valid response after retry {retry} for one query."
             )
             return JudgeModelResult(
                 model=model,
