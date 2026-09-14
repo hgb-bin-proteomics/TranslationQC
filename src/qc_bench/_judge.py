@@ -22,6 +22,7 @@ from typing import Optional, Annotated, Any, Literal
 from ._translation import QualityEstimation
 from ._constants import MAX_RETRY, MAX_OUTPUT_TOKENS, RETRY_WAIT_TIME, SEEDS
 from ._constants import OPENAI_MODEL, OPENAI_THINKING_LEVEL
+from ._constants import ANTHROPIC_MODEL, ANTHROPIC_THINKING_LEVEL
 from ._constants import GOOGLE_MODEL, GOOGLE_THINKING_LEVEL
 from ._constants import OLLAMA_HOST, OLLAMA_DEFAULT_MODEL, OLLAMA_KEEP_ALIVE
 
@@ -329,6 +330,192 @@ class _AnthropicModel:
         logger.error("Could not get a token for Anthropic!")
         raise RuntimeError("Could not get a token for Anthropic!")
         return "err"
+
+    @staticmethod
+    def _get_system_instruction() -> str:
+        # slightly adopted prompt from the MetricX 25 paper
+        return """
+            You are an annotator for the quality of machine translation. Your task is to
+            identify errors and assess the quality of the translation.
+            Based on the source segment, human-generated reference translation, and machine
+            translation surrounded with triple backticks, identify error types in the
+            translation and classify them. The categories of errors are: accuracy
+            (addition, mistranslation, omission, untranslated text), fluency (character
+            encoding, grammar, inconsistency, punctuation, register, spelling), style
+            (awkward), terminology (inappropriate for context, inconsistent use),
+            non-translation, other, or no-error.
+            Each error is classified as one of three severities: critical, major, and minor.
+            Critical errors inhibit comprehension of the text. Major errors disrupt the
+            flow, but what the text is trying to say is still understandable. Minor errors
+            are technically errors, but do not disrupt the flow or hinder comprehension.
+            Give a quality estimation as a value between 0 and 1 where 0 is complete gibberish
+            and 1 would be a perfect translation.
+            Make sure your response is a strict and valid json object that could be parsed with
+            json.loads() in python.
+            """
+
+    @staticmethod
+    def _get_user_instruction(
+        src: str,
+        mt: str,
+        src_lang: str,
+        mt_lang: str,
+    ) -> str:
+        # slightly adopted prompt from the MetricX 25 paper
+        return (
+            f"{src_lang} source: ```{src}```\n{mt_lang} machine translation: ```{mt}```"
+        )
+
+    @staticmethod
+    def _get_anthropic_response(
+        client: Optional[Anthropic],
+        src: str,
+        mt: str,
+        src_lang: str,
+        mt_lang: str,
+        retry: int = 0,
+    ) -> JudgeModelResult | None:
+        if client is None:
+            return None
+        system_instruction: str = _AnthropicModel._get_system_instruction()
+        user_instruction: str = _AnthropicModel._get_user_instruction(
+            src=src, mt=mt, src_lang=src_lang, mt_lang=mt_lang
+        )
+        prompt: str = f"{system_instruction}\n{user_instruction}"
+        response = None
+        try:
+            # https://platform.claude.com/docs/en/build-with-claude/structured-outputs#quick-start
+            response = client.messages.parse(
+                model=ANTHROPIC_MODEL,
+                # https://platform.claude.com/docs/en/build-with-claude/working-with-messages#system-role-in-messages
+                system=system_instruction,
+                messages=[
+                    {"role": "user", "content": user_instruction},
+                ],
+                # https://platform.claude.com/docs/en/build-with-claude/effort
+                output_config={"effort": ANTHROPIC_THINKING_LEVEL},
+                output_format=QualityEstimation,
+                max_tokens=MAX_OUTPUT_TOKENS,
+            )
+        except Exception as e:
+            logger.warning(
+                f"Failed getting response at retry {retry} from Anthropic API due to: {e}"
+            )
+            if retry < MAX_RETRY:
+                time.sleep(RETRY_WAIT_TIME)
+                return _AnthropicModel._get_anthropic_response(
+                    client,
+                    src=src,
+                    mt=mt,
+                    src_lang=src_lang,
+                    mt_lang=mt_lang,
+                    retry=retry + 1,
+                )
+            logger.error(
+                f"Failed getting response at retry {retry} > MAX_RETRY from Anthropic API due to: {e}"
+            )
+            return JudgeModelResult(
+                model=ANTHROPIC_MODEL,
+                prompt=prompt,
+                status="error",
+                parameters={"effort": ANTHROPIC_THINKING_LEVEL},
+                response=None,
+                quality_estimation=None,
+                quality_estimation_dict=None,
+            )
+
+        if response is None:
+            if retry < MAX_RETRY:
+                return _AnthropicModel._get_anthropic_response(
+                    client,
+                    src=src,
+                    mt=mt,
+                    src_lang=src_lang,
+                    mt_lang=mt_lang,
+                    retry=retry + 1,
+                )
+            logger.error(
+                f"Failed getting a valid response at retry {retry} > MAX_RETRY."
+            )
+            return JudgeModelResult(
+                model=ANTHROPIC_MODEL,
+                prompt=prompt,
+                status="error",
+                parameters={"effort": ANTHROPIC_THINKING_LEVEL},
+                response=None,
+                quality_estimation=None,
+                quality_estimation_dict=None,
+            )
+
+        if response.parsed_output is None:
+            if retry < MAX_RETRY:
+                return _AnthropicModel._get_anthropic_response(
+                    client,
+                    src=src,
+                    mt=mt,
+                    src_lang=src_lang,
+                    mt_lang=mt_lang,
+                    retry=retry + 1,
+                )
+            logger.error(
+                f"Failed getting a valid response at retry {retry} > MAX_RETRY."
+            )
+            return JudgeModelResult(
+                model=ANTHROPIC_MODEL,
+                prompt=prompt,
+                status="error",
+                parameters={"effort": ANTHROPIC_THINKING_LEVEL},
+                response=str(response),
+                quality_estimation=None,
+                quality_estimation_dict=None,
+            )
+
+        try:
+            r = response.parsed_output.model_dump(mode="json")
+            logger.info(
+                f"Successfully got a valid response after retry {retry} for one query."
+            )
+            return JudgeModelResult(
+                model=ANTHROPIC_MODEL,
+                prompt=prompt,
+                status="ok",
+                parameters={"effort": ANTHROPIC_THINKING_LEVEL},
+                response=str(response),
+                quality_estimation=response.parsed_output,
+                quality_estimation_dict=r,
+            )
+        except Exception as _e:
+            if retry < MAX_RETRY:
+                return _AnthropicModel._get_anthropic_response(
+                    client,
+                    src=src,
+                    mt=mt,
+                    src_lang=src_lang,
+                    mt_lang=mt_lang,
+                    retry=retry + 1,
+                )
+            logger.error(
+                f"Failed getting a valid response at retry {retry} > MAX_RETRY."
+            )
+            return JudgeModelResult(
+                model=ANTHROPIC_MODEL,
+                prompt=prompt,
+                status="error",
+                parameters={"effort": ANTHROPIC_THINKING_LEVEL},
+                response=str(response),
+                quality_estimation=None,
+                quality_estimation_dict=None,
+            )
+        logger.error(f"Failed getting a valid response at retry {retry} > MAX_RETRY.")
+        return JudgeModelResult(
+            model=ANTHROPIC_MODEL,
+            prompt=prompt,
+            status="error",
+            parameters={"effort": ANTHROPIC_THINKING_LEVEL},
+            response=str(response) if response is not None else None,
+            quality_estimation=None,
+            quality_estimation_dict=None,
+        )
 
 
 class _GoogleModel:

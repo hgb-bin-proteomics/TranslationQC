@@ -11,6 +11,13 @@ OPENAI_MODEL = "gpt-5.4"
 # https://developers.openai.com/api/reference/resources/$shared#(resource)%20%24shared%20%3E%20(model)%20reasoning_effort%20%3E%20(schema)
 OPENAI_THINKING_LEVEL = "low"
 
+########## ANTHROPIC ##########
+
+# https://platform.claude.com/docs/en/models/overview
+ANTHROPIC_MODEL = "claude-opus-5"
+# https://platform.claude.com/docs/en/build-with-claude/effort
+ANTHROPIC_THINKING_LEVEL = "low"
+
 ########## GOOGLE ##########
 
 # https://ai.google.dev/gemini-api/docs/models
