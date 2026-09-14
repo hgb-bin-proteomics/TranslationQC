@@ -126,8 +126,12 @@ class _OpenAIModel:
                 env = json.load(f)
                 logger.info("Got OPENAI_API_KEY from env.json file.")
                 return str(env["OPENAI_API_KEY"]).strip()
-        logger.error("Could not get a token for OpenAI!")
-        raise RuntimeError("Could not get a token for OpenAI!")
+        logger.error(
+            "Could not get an API key for OpenAI! Searched for 'OPENAI_API_KEY'."
+        )
+        raise RuntimeError(
+            "Could not get an API key for OpenAI! Searched for 'OPENAI_API_KEY'."
+        )
         return "err"
 
     @staticmethod
@@ -327,8 +331,12 @@ class _AnthropicModel:
                 env = json.load(f)
                 logger.info("Got ANTHROPIC_API_KEY from env.json file.")
                 return str(env["ANTHROPIC_API_KEY"]).strip()
-        logger.error("Could not get a token for Anthropic!")
-        raise RuntimeError("Could not get a token for Anthropic!")
+        logger.error(
+            "Could not get an API key for Anthropic! Searched for 'ANTHROPIC_API_KEY'."
+        )
+        raise RuntimeError(
+            "Could not get an API key for Anthropic! Searched for 'ANTHROPIC_API_KEY'."
+        )
         return "err"
 
     @staticmethod
@@ -529,8 +537,12 @@ class _GoogleModel:
                 env = json.load(f)
                 logger.info("Got GEMINI_API_KEY from env.json file.")
                 return str(env["GEMINI_API_KEY"]).strip()
-        logger.error("Could not get a token for Google Gemini!")
-        raise RuntimeError("Could not get a token for Google Gemini!")
+        logger.error(
+            "Could not get an API key for Google Gemini! Searched for 'GEMINI_API_KEY'."
+        )
+        raise RuntimeError(
+            "Could not get an API key for Google Gemini! Searched for 'GEMINI_API_KEY'."
+        )
         return "err"
 
     @staticmethod
