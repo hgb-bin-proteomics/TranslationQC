@@ -189,6 +189,7 @@ class _OpenAIModel:
                     {"role": "system", "content": system_instruction},
                     {"role": "user", "content": user_instruction},
                 ],
+                # # https://developers.openai.com/api/docs/guides/reasoning?api-mode=responses
                 reasoning={"effort": OPENAI_THINKING_LEVEL},
                 text_format=QualityEstimation,
                 max_output_tokens=MAX_OUTPUT_TOKENS,
