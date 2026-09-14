@@ -7,21 +7,23 @@ Rating natural language translations easily via proprietary and open-weights LLM
 ### Usage Options
 
 ```text
-usage: qc-bench [-h] -i INPUT -o OUTPUT [--openai] [--anthropic] [--google] [--ollama] [--version]
+usage: qc-bench [-h] -i INPUT -o OUTPUT [--openai] [--anthropic] [--google] [--ollama] [--ollama-model OLLAMA_MODEL] [--version]
 
-  Quality estimation for a list of translations using LLMs.
+Quality estimation for a list of translations using LLMs.
 
-  options:
-    -h, --help           show this help message and exit
-    -i, --input INPUT    path/name of the translations '.csv' file containing the columns 'src', 'mt', 'src_lang', and 'mt_lang' (str).
-    -o, --output OUTPUT  path/name of the ouput file that should be written to disk (str).
-    --openai             use OpenAI model.
-    --anthropic          use Anthropic model.
-    --google             use Google model.
-    --ollama             use Ollama model.
-    --version            show program's version number and exit
+options:
+  -h, --help            show this help message and exit
+  -i, --input INPUT     path/name of the translations '.csv' file containing the columns 'src', 'mt', 'src_lang', and 'mt_lang' (str).
+  -o, --output OUTPUT   path/name of the ouput file that should be written to disk (str).
+  --openai              use OpenAI model.
+  --anthropic           use Anthropic model.
+  --google              use Google model.
+  --ollama              use Ollama model.
+  --ollama-model OLLAMA_MODEL
+                        which Ollama model to use, must be a valid Ollama model identifier (str).
+  --version             show program's version number and exit
 
-  (c) Micha Birklbauer, 2026
+(c) Micha Birklbauer, 2026
 ```
 
 ### Example Usage
