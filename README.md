@@ -4,6 +4,19 @@ Rating natural language translations easily via proprietary and open-weights LLM
 
 ## Usage
 
+### Usage with python
+
+- Add this to your uv project with:
+  ```bash
+  uv add git+https://github.com/hgb-bin-proteomics/TranslationQC.git
+  ```
+- Or install with pip:
+  ```bash
+  pip install git+https://github.com/hgb-bin-proteomics/TranslationQC.git
+  ```
+- Checkout the example Jupyter notebook at `notebooks/qc-bench-usage.ipynb`.
+- Checkout the python API documentation at https://hgb-bin-proteomics.github.io/TranslationQC/
+
 ### Usage Options
 
 ```text
