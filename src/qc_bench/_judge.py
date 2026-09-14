@@ -12,6 +12,7 @@ from anthropic import Anthropic
 from google.genai import Client as Google
 from google.genai import types as GoogleTypes  # noqa: N812
 from ollama import Client as Ollama
+from ollama import ChatResponse as OllamaChatResponse
 from ollama import GenerateResponse as OllamaGenerateResponse
 from ollama import ResponseError as OllamaResponseError
 from ollama import pull as pull_ollama_model
@@ -756,6 +757,41 @@ class _GoogleModel:
 
 class _OllamaModel:
     @staticmethod
+    def _get_system_instruction() -> str:
+        # slightly adopted prompt from the MetricX 25 paper
+        return """
+            You are an annotator for the quality of machine translation. Your task is to
+            identify errors and assess the quality of the translation.
+            Based on the source segment, human-generated reference translation, and machine
+            translation surrounded with triple backticks, identify error types in the
+            translation and classify them. The categories of errors are: accuracy
+            (addition, mistranslation, omission, untranslated text), fluency (character
+            encoding, grammar, inconsistency, punctuation, register, spelling), style
+            (awkward), terminology (inappropriate for context, inconsistent use),
+            non-translation, other, or no-error.
+            Each error is classified as one of three severities: critical, major, and minor.
+            Critical errors inhibit comprehension of the text. Major errors disrupt the
+            flow, but what the text is trying to say is still understandable. Minor errors
+            are technically errors, but do not disrupt the flow or hinder comprehension.
+            Give a quality estimation as a value between 0 and 1 where 0 is complete gibberish
+            and 1 would be a perfect translation.
+            Make sure your response is a strict and valid json object that could be parsed with
+            json.loads() in python.
+            """
+
+    @staticmethod
+    def _get_user_instruction(
+        src: str,
+        mt: str,
+        src_lang: str,
+        mt_lang: str,
+    ) -> str:
+        # slightly adopted prompt from the MetricX 25 paper
+        return (
+            f"{src_lang} source: ```{src}```\n{mt_lang} machine translation: ```{mt}```"
+        )
+
+    @staticmethod
     def _generate_prompt(
         src: str,
         mt: str,
@@ -784,8 +820,198 @@ class _OllamaModel:
             """
         return f"{base}{src_lang} source: ```{src}```\n{mt_lang} machine translation: ```{mt}```"
 
+    # this is using the chat API which is the recommended way for structured outputs
+    # as of September 2026
     @staticmethod
     def _get_ollama_response(
+        client: Optional[Ollama],
+        model: str,
+        num_predict: int,
+        keep_alive: int | str,
+        src: str,
+        mt: str,
+        src_lang: str,
+        mt_lang: str,
+        retry: int = 0,
+    ) -> JudgeModelResult | None:
+        if client is None:
+            return None
+        response: OllamaChatResponse | None = None
+        system_instruction: str = _OllamaModel._get_system_instruction()
+        user_instruction: str = _OllamaModel._get_user_instruction(
+            src=src, mt=mt, src_lang=src_lang, mt_lang=mt_lang
+        )
+        prompt: str = f"{system_instruction}\n{user_instruction}"
+        try:
+            response = client.chat(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system_instruction},
+                    {"role": "user", "content": user_instruction},
+                ],
+                format=QualityEstimation.model_json_schema(),
+                keep_alive=keep_alive,
+                options={"num_predict": num_predict, "seed": SEEDS[retry]},
+            )
+        except OllamaResponseError as e:
+            logger.error(f"Error in response: {e.error}")
+            # if no model, retrive model and try again
+            if e.status_code == 404:
+                pull_ollama_model(model)
+            if retry < MAX_RETRY:
+                return _OllamaModel._get_ollama_response(
+                    client,
+                    model=model,
+                    num_predict=num_predict,
+                    keep_alive=keep_alive,
+                    src=src,
+                    mt=mt,
+                    src_lang=src_lang,
+                    mt_lang=mt_lang,
+                    retry=retry + 1,
+                )
+            # use fallback to generate API
+            return _OllamaModel._get_ollama_response_fallback(
+                client,
+                model=model,
+                num_predict=num_predict,
+                keep_alive=keep_alive,
+                src=src,
+                mt=mt,
+                src_lang=src_lang,
+                mt_lang=mt_lang,
+            )
+        except Exception as e:
+            logger.error(f"Error in response: {e}")
+
+        if response is None:
+            if retry < MAX_RETRY:
+                return _OllamaModel._get_ollama_response(
+                    client,
+                    model=model,
+                    num_predict=num_predict,
+                    keep_alive=keep_alive,
+                    src=src,
+                    mt=mt,
+                    src_lang=src_lang,
+                    mt_lang=mt_lang,
+                    retry=retry + 1,
+                )
+            # use fallback to generate API
+            return _OllamaModel._get_ollama_response_fallback(
+                client,
+                model=model,
+                num_predict=num_predict,
+                keep_alive=keep_alive,
+                src=src,
+                mt=mt,
+                src_lang=src_lang,
+                mt_lang=mt_lang,
+            )
+
+        if response.message is None:
+            if retry < MAX_RETRY:
+                return _OllamaModel._get_ollama_response(
+                    client,
+                    model=model,
+                    num_predict=num_predict,
+                    keep_alive=keep_alive,
+                    src=src,
+                    mt=mt,
+                    src_lang=src_lang,
+                    mt_lang=mt_lang,
+                    retry=retry + 1,
+                )
+            # use fallback to generate API
+            return _OllamaModel._get_ollama_response_fallback(
+                client,
+                model=model,
+                num_predict=num_predict,
+                keep_alive=keep_alive,
+                src=src,
+                mt=mt,
+                src_lang=src_lang,
+                mt_lang=mt_lang,
+            )
+
+        if response.message.content is None:
+            if retry < MAX_RETRY:
+                return _OllamaModel._get_ollama_response(
+                    client,
+                    model=model,
+                    num_predict=num_predict,
+                    keep_alive=keep_alive,
+                    src=src,
+                    mt=mt,
+                    src_lang=src_lang,
+                    mt_lang=mt_lang,
+                    retry=retry + 1,
+                )
+            # use fallback to generate API
+            return _OllamaModel._get_ollama_response_fallback(
+                client,
+                model=model,
+                num_predict=num_predict,
+                keep_alive=keep_alive,
+                src=src,
+                mt=mt,
+                src_lang=src_lang,
+                mt_lang=mt_lang,
+            )
+
+        try:
+            qe = QualityEstimation.model_validate_json(response.message.content)
+            r = json.loads(response.message.content)
+            logger.info(
+                f"Successfully got a valid response after retry {retry} for one query."
+            )
+            return JudgeModelResult(
+                model=model,
+                prompt=prompt,
+                status="ok",
+                parameters={"num_predict": str(num_predict), "seed": str(SEEDS[retry])},
+                response=str(response),
+                quality_estimation=qe,
+                quality_estimation_dict=r,
+            )
+        except Exception as _e:
+            if retry < MAX_RETRY:
+                return _OllamaModel._get_ollama_response(
+                    client,
+                    model=model,
+                    num_predict=num_predict,
+                    keep_alive=keep_alive,
+                    src=src,
+                    mt=mt,
+                    src_lang=src_lang,
+                    mt_lang=mt_lang,
+                    retry=retry + 1,
+                )
+            # use fallback to generate API
+            return _OllamaModel._get_ollama_response_fallback(
+                client,
+                model=model,
+                num_predict=num_predict,
+                keep_alive=keep_alive,
+                src=src,
+                mt=mt,
+                src_lang=src_lang,
+                mt_lang=mt_lang,
+            )
+        # use fallback to generate API
+        return _OllamaModel._get_ollama_response_fallback(
+            client,
+            model=model,
+            num_predict=num_predict,
+            keep_alive=keep_alive,
+            src=src,
+            mt=mt,
+            src_lang=src_lang,
+            mt_lang=mt_lang,
+        )
+
+    @staticmethod
+    def _get_ollama_response_fallback(
         client: Optional[Ollama],
         model: str,
         num_predict: int,
@@ -816,7 +1042,7 @@ class _OllamaModel:
             if e.status_code == 404:
                 pull_ollama_model(model)
             if retry < MAX_RETRY:
-                return _OllamaModel._get_ollama_response(
+                return _OllamaModel._get_ollama_response_fallback(
                     client,
                     model=model,
                     num_predict=num_predict,
@@ -832,7 +1058,7 @@ class _OllamaModel:
 
         if response is None:
             if retry < MAX_RETRY:
-                return _OllamaModel._get_ollama_response(
+                return _OllamaModel._get_ollama_response_fallback(
                     client,
                     model=model,
                     num_predict=num_predict,
@@ -858,7 +1084,7 @@ class _OllamaModel:
 
         if response.response is None:
             if retry < MAX_RETRY:
-                return _OllamaModel._get_ollama_response(
+                return _OllamaModel._get_ollama_response_fallback(
                     client,
                     model=model,
                     num_predict=num_predict,
@@ -900,7 +1126,7 @@ class _OllamaModel:
         except Exception as _e:
             try:
                 if retry < MAX_RETRY:
-                    return _OllamaModel._get_ollama_response(
+                    return _OllamaModel._get_ollama_response_fallback(
                         client,
                         model=model,
                         num_predict=num_predict,
@@ -929,7 +1155,7 @@ class _OllamaModel:
                 )
             except Exception as _e:
                 if retry < MAX_RETRY:
-                    return _OllamaModel._get_ollama_response(
+                    return _OllamaModel._get_ollama_response_fallback(
                         client,
                         model=model,
                         num_predict=num_predict,
