@@ -1076,7 +1076,9 @@ class Judge:
             openai=_OpenAIModel._get_openai_response(
                 self.__openai, src=src, mt=mt, src_lang=src_lang, mt_lang=mt_lang
             ),
-            anthropic=None,
+            anthropic=_AnthropicModel._get_anthropic_response(
+                self.__anthropic, src=src, mt=mt, src_lang=src_lang, mt_lang=mt_lang
+            ),
             google=_GoogleModel._get_gemini_response(
                 self.__google, src=src, mt=mt, src_lang=src_lang, mt_lang=mt_lang
             ),
