@@ -239,7 +239,7 @@ class _OpenAIModel:
                 prompt=prompt,
                 status="error",
                 parameters={"effort": OPENAI_THINKING_LEVEL},
-                response=str(response.text),
+                response=None,
                 quality_estimation=None,
                 quality_estimation_dict=None,
             )
@@ -262,7 +262,7 @@ class _OpenAIModel:
                 prompt=prompt,
                 status="error",
                 parameters={"effort": OPENAI_THINKING_LEVEL},
-                response=str(response.text),
+                response=str(response),
                 quality_estimation=None,
                 quality_estimation_dict=None,
             )
@@ -277,7 +277,7 @@ class _OpenAIModel:
                 prompt=prompt,
                 status="ok",
                 parameters={"effort": OPENAI_THINKING_LEVEL},
-                response=str(response.text),
+                response=str(response),
                 quality_estimation=response.output_parsed,
                 quality_estimation_dict=r,
             )
@@ -299,7 +299,7 @@ class _OpenAIModel:
                 prompt=prompt,
                 status="error",
                 parameters={"effort": OPENAI_THINKING_LEVEL},
-                response=str(response.text),
+                response=str(response),
                 quality_estimation=None,
                 quality_estimation_dict=None,
             )
@@ -309,7 +309,7 @@ class _OpenAIModel:
             prompt=prompt,
             status="error",
             parameters={"effort": OPENAI_THINKING_LEVEL},
-            response=None,
+            response=str(response) if response is not None else None,
             quality_estimation=None,
             quality_estimation_dict=None,
         )
