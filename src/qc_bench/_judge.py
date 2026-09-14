@@ -736,7 +736,7 @@ class _GoogleModel:
             prompt=prompt,
             status="error",
             parameters={"thinking_config": GOOGLE_THINKING_LEVEL},
-            response=None,
+            response=str(response) if response is not None else None,
             quality_estimation=None,
             quality_estimation_dict=None,
         )
@@ -949,7 +949,7 @@ class _OllamaModel:
             prompt=prompt,
             status="error",
             parameters={"num_predict": str(num_predict), "seed": str(SEEDS[retry])},
-            response=None,
+            response=str(response) if response is not None else None,
             quality_estimation=None,
             quality_estimation_dict=None,
         )
