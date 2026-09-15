@@ -105,7 +105,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             openai=args.openai,
             anthropic=args.anthropic,
             google=args.google,
-            ollama=args.ollama_model
+            ollama=str(args.ollama_model).strip()
             if (args.ollama_model is not None and args.ollama)
             else args.ollama,
         )
