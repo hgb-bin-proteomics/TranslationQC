@@ -40,9 +40,10 @@ def annotate_csv(
     --------
     >>> from qc_bench import annotate_csv, Judge
     >>> judge = Judge(openai=False, anthropic=False, google=False, ollama="mistral:7b")
-    >>> annotate_csv("data/test.csv", judge=judge)
+    >>> pl_df, list_jr = annotate_csv("data/test.csv", judge=judge)
     Annotating data/test.csv...: 100%|█████████████████████████████████████████████████████████████████████████████████████| 1/1 [00:04<00:00,  4.96s/it]
-    (shape: (1, 8)
+    >>> pl_df
+    shape: (1, 8)
     ┌──────────────────────────────────┬──────────────────┬──────────┬─────────┬──────────────┬─────────────────┬──────────────┬─────────────────────────┐
     │ src                              ┆ mt               ┆ src_lang ┆ mt_lang ┆ score_openai ┆ score_anthropic ┆ score_google ┆ score_ollama_mistral:7b │
     │ ---                              ┆ ---              ┆ ---      ┆ ---     ┆ ---          ┆ ---             ┆ ---          ┆ ---                     │
@@ -50,8 +51,11 @@ def annotate_csv(
     ╞══════════════════════════════════╪══════════════════╪══════════╪═════════╪══════════════╪═════════════════╪══════════════╪═════════════════════════╡
     │ The lights are dimmable, but I…  ┆ Die Lichter sind ┆ English  ┆ German  ┆ NaN          ┆ NaN             ┆ NaN          ┆ 0.95                    │
     │                                  ┆ dimmbar, aber…   ┆          ┆         ┆              ┆                 ┆              ┆                         │
-    └──────────────────────────────────┴──────────────────┴──────────┴─────────┴──────────────┴─────────────────┴──────────────┴─────────────────────────┘,
-    [])
+    └──────────────────────────────────┴──────────────────┴──────────┴─────────┴──────────────┴─────────────────┴──────────────┴─────────────────────────┘
+    >>> len(list_jr)
+    1
+    >>> type(list_jr[0])
+    <class 'qc_bench._judge.JudgeResult'>
     """
     # data collection
     score_openai: list[float] = list()
@@ -75,6 +79,7 @@ def annotate_csv(
             mt_lang=str(row["mt_lang"]).strip(),
         )
         json_data.append(result.model_dump_json())
+        raw_data.append(result)
         score_openai.append(
             result.openai.score if result.openai is not None else float("nan")
         )

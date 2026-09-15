@@ -83,6 +83,14 @@ def main(argv: Optional[list[str]] = None) -> int:
         default=False,
         help="use Ollama model.",
     )
+    parser.add_argument(
+        "--ollama-model",
+        dest="ollama_model",
+        default=None,
+        required=False,
+        help="which Ollama model to use, must be a valid Ollama model identifier (str).",
+        type=str,
+    )
     parser.add_argument("--version", action="version", version=__version__)
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO)
@@ -97,7 +105,9 @@ def main(argv: Optional[list[str]] = None) -> int:
             openai=args.openai,
             anthropic=args.anthropic,
             google=args.google,
-            ollama=args.ollama,
+            ollama=str(args.ollama_model).strip()
+            if (args.ollama_model is not None and args.ollama)
+            else args.ollama,
         )
 
         if args.ollama:
