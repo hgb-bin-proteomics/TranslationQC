@@ -316,7 +316,7 @@ class JudgeConfig(BaseModel):
             f"Maximum Retries:            {self.max_retry}\n"
             f"Retry Waiting Time:         {self.retry_wait_time}\n"
             f"Seeds:                      {', '.join([str(seed) for seed in self.seeds])}\n"
-            "-----------------------------------------------------\n"
+            "-----------------------------------------------------"
         )
 
 
