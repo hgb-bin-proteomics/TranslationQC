@@ -1486,7 +1486,6 @@ class Judge:
                     "Ollama model is already given in the configuration! "
                     "Please only use one of the two options!"
                 )
-        logger.info(f"Loaded the following configuration:\n{self.config}")
         # openai
         if isinstance(openai, str):
             self.__openai = OpenAI(api_key=str(openai).strip())
@@ -1494,6 +1493,7 @@ class Judge:
             self.__openai = OpenAI(api_key=_OpenAIModel._get_openai_api_key())
         else:
             self.__openai = None
+        # log openai
         if self.__openai is None:
             logger.info("OpenAI judge disabled for this instance!")
         else:
@@ -1507,6 +1507,7 @@ class Judge:
             )
         else:
             self.__anthropic = None
+        # log anthropic
         if self.__anthropic is None:
             logger.info("Anthropic judge disabled for this instance!")
         else:
@@ -1518,6 +1519,7 @@ class Judge:
             self.__google = Google(api_key=_GoogleModel._get_gemini_api_key())
         else:
             self.__google = None
+        # log google
         if self.__google is None:
             logger.info("Google judge disabled for this instance!")
         else:
@@ -1529,10 +1531,13 @@ class Judge:
             self.__ollama = Ollama(host=self.config.ollama_host, headers={})
         else:
             self.__ollama = None
+        # log ollama
         if self.__ollama is None:
             logger.info("Ollama judge disabled for this instance!")
         else:
             logger.info("Ollama judge enabled for this instance!")
+        # log config
+        logger.info(f"Loaded the following configuration:\n{self.config}")
 
     def score(self, src: str, mt: str, src_lang: str, mt_lang: str) -> JudgeResult:
         r"""Performs quality estimation using all setup LLMs for one translation.
