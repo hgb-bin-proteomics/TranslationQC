@@ -1033,9 +1033,7 @@ class _OllamaModel:
     @staticmethod
     def _get_ollama_response(
         client: Optional[Ollama],
-        model: str,
-        num_predict: int,
-        keep_alive: int | str,
+        config: JudgeConfig,
         src: str,
         mt: str,
         src_lang: str,
@@ -1052,26 +1050,27 @@ class _OllamaModel:
         prompt: str = f"{system_instruction}\n{user_instruction}"
         try:
             response = client.chat(
-                model=model,
+                model=config.ollama_model,
                 messages=[
                     {"role": "system", "content": system_instruction},
                     {"role": "user", "content": user_instruction},
                 ],
                 format=QualityEstimation.model_json_schema(),
-                keep_alive=keep_alive,
-                options={"num_predict": num_predict, "seed": SEEDS[retry]},
+                keep_alive=config.ollama_keep_alive,
+                options={
+                    "num_predict": config.max_output_tokens,
+                    "seed": config.seeds[retry],
+                },
             )
         except OllamaResponseError as e:
             logger.error(f"Error in response: {e.error}")
             # if no model, retrive model and try again
             if e.status_code == 404:
-                pull_ollama_model(model)
-            if retry < MAX_RETRY:
+                pull_ollama_model(config.ollama_model)
+            if retry < config.max_retry:
                 return _OllamaModel._get_ollama_response(
                     client,
-                    model=model,
-                    num_predict=num_predict,
-                    keep_alive=keep_alive,
+                    config=config,
                     src=src,
                     mt=mt,
                     src_lang=src_lang,
@@ -1081,9 +1080,7 @@ class _OllamaModel:
             # use fallback to generate API
             return _OllamaModel._get_ollama_response_fallback(
                 client,
-                model=model,
-                num_predict=num_predict,
-                keep_alive=keep_alive,
+                config=config,
                 src=src,
                 mt=mt,
                 src_lang=src_lang,
@@ -1093,12 +1090,10 @@ class _OllamaModel:
             logger.error(f"Error in response: {e}")
 
         if response is None:
-            if retry < MAX_RETRY:
+            if retry < config.max_retry:
                 return _OllamaModel._get_ollama_response(
                     client,
-                    model=model,
-                    num_predict=num_predict,
-                    keep_alive=keep_alive,
+                    config=config,
                     src=src,
                     mt=mt,
                     src_lang=src_lang,
@@ -1108,9 +1103,7 @@ class _OllamaModel:
             # use fallback to generate API
             return _OllamaModel._get_ollama_response_fallback(
                 client,
-                model=model,
-                num_predict=num_predict,
-                keep_alive=keep_alive,
+                config=config,
                 src=src,
                 mt=mt,
                 src_lang=src_lang,
@@ -1118,12 +1111,10 @@ class _OllamaModel:
             )
 
         if response.message is None:
-            if retry < MAX_RETRY:
+            if retry < config.max_retry:
                 return _OllamaModel._get_ollama_response(
                     client,
-                    model=model,
-                    num_predict=num_predict,
-                    keep_alive=keep_alive,
+                    config=config,
                     src=src,
                     mt=mt,
                     src_lang=src_lang,
@@ -1133,9 +1124,7 @@ class _OllamaModel:
             # use fallback to generate API
             return _OllamaModel._get_ollama_response_fallback(
                 client,
-                model=model,
-                num_predict=num_predict,
-                keep_alive=keep_alive,
+                config=config,
                 src=src,
                 mt=mt,
                 src_lang=src_lang,
@@ -1143,12 +1132,10 @@ class _OllamaModel:
             )
 
         if response.message.content is None:
-            if retry < MAX_RETRY:
+            if retry < config.max_retry:
                 return _OllamaModel._get_ollama_response(
                     client,
-                    model=model,
-                    num_predict=num_predict,
-                    keep_alive=keep_alive,
+                    config=config,
                     src=src,
                     mt=mt,
                     src_lang=src_lang,
@@ -1158,9 +1145,7 @@ class _OllamaModel:
             # use fallback to generate API
             return _OllamaModel._get_ollama_response_fallback(
                 client,
-                model=model,
-                num_predict=num_predict,
-                keep_alive=keep_alive,
+                config=config,
                 src=src,
                 mt=mt,
                 src_lang=src_lang,
@@ -1174,21 +1159,22 @@ class _OllamaModel:
                 f"Successfully got a valid response after retry {retry} for one query."
             )
             return JudgeModelResult(
-                model=model,
+                model=config.ollama_model,
                 prompt=prompt,
                 status="ok",
-                parameters={"num_predict": str(num_predict), "seed": str(SEEDS[retry])},
+                parameters={
+                    "num_predict": str(config.max_output_tokens),
+                    "seed": str(config.seeds[retry]),
+                },
                 response=str(response),
                 quality_estimation=qe,
                 quality_estimation_dict=r,
             )
         except Exception as _e:
-            if retry < MAX_RETRY:
+            if retry < config.max_retry:
                 return _OllamaModel._get_ollama_response(
                     client,
-                    model=model,
-                    num_predict=num_predict,
-                    keep_alive=keep_alive,
+                    config=config,
                     src=src,
                     mt=mt,
                     src_lang=src_lang,
@@ -1198,9 +1184,7 @@ class _OllamaModel:
             # use fallback to generate API
             return _OllamaModel._get_ollama_response_fallback(
                 client,
-                model=model,
-                num_predict=num_predict,
-                keep_alive=keep_alive,
+                config=config,
                 src=src,
                 mt=mt,
                 src_lang=src_lang,
@@ -1209,9 +1193,7 @@ class _OllamaModel:
         # use fallback to generate API
         return _OllamaModel._get_ollama_response_fallback(
             client,
-            model=model,
-            num_predict=num_predict,
-            keep_alive=keep_alive,
+            config=config,
             src=src,
             mt=mt,
             src_lang=src_lang,
@@ -1221,9 +1203,7 @@ class _OllamaModel:
     @staticmethod
     def _get_ollama_response_fallback(
         client: Optional[Ollama],
-        model: str,
-        num_predict: int,
-        keep_alive: int | str,
+        config: JudgeConfig,
         src: str,
         mt: str,
         src_lang: str,
@@ -1238,23 +1218,24 @@ class _OllamaModel:
         )
         try:
             response = client.generate(
-                model=model,
+                model=config.ollama_model,
                 prompt=prompt,
                 format=QualityEstimation.model_json_schema(),
-                keep_alive=keep_alive,
-                options={"num_predict": num_predict, "seed": SEEDS[retry]},
+                keep_alive=config.ollama_keep_alive,
+                options={
+                    "num_predict": config.max_output_tokens,
+                    "seed": config.seeds[retry],
+                },
             )
         except OllamaResponseError as e:
             logger.error(f"Error in response: {e.error}")
             # if no model, retrive model and try again
             if e.status_code == 404:
-                pull_ollama_model(model)
-            if retry < MAX_RETRY:
+                pull_ollama_model(config.ollama_model)
+            if retry < config.max_retry:
                 return _OllamaModel._get_ollama_response_fallback(
                     client,
-                    model=model,
-                    num_predict=num_predict,
-                    keep_alive=keep_alive,
+                    config=config,
                     src=src,
                     mt=mt,
                     src_lang=src_lang,
@@ -1265,12 +1246,10 @@ class _OllamaModel:
             logger.error(f"Error in response: {e}")
 
         if response is None:
-            if retry < MAX_RETRY:
+            if retry < config.max_retry:
                 return _OllamaModel._get_ollama_response_fallback(
                     client,
-                    model=model,
-                    num_predict=num_predict,
-                    keep_alive=keep_alive,
+                    config=config,
                     src=src,
                     mt=mt,
                     src_lang=src_lang,
@@ -1278,25 +1257,26 @@ class _OllamaModel:
                     retry=retry + 1,
                 )
             logger.error(
-                f"Failed getting a valid response at retry {retry} > MAX_RETRY."
+                f"Failed getting a valid response at retry {retry} > MAX_RETRY ({config.max_retry})."
             )
             return JudgeModelResult(
-                model=model,
+                model=config.ollama_model,
                 prompt=prompt,
                 status="error",
-                parameters={"num_predict": str(num_predict), "seed": str(SEEDS[retry])},
+                parameters={
+                    "num_predict": str(config.max_output_tokens),
+                    "seed": str(config.seeds[retry]),
+                },
                 response=None,
                 quality_estimation=None,
                 quality_estimation_dict=None,
             )
 
         if response.response is None:
-            if retry < MAX_RETRY:
+            if retry < config.max_retry:
                 return _OllamaModel._get_ollama_response_fallback(
                     client,
-                    model=model,
-                    num_predict=num_predict,
-                    keep_alive=keep_alive,
+                    config=config,
                     src=src,
                     mt=mt,
                     src_lang=src_lang,
@@ -1304,13 +1284,16 @@ class _OllamaModel:
                     retry=retry + 1,
                 )
             logger.error(
-                f"Failed getting a valid response at retry {retry} > MAX_RETRY."
+                f"Failed getting a valid response at retry {retry} > MAX_RETRY ({config.max_retry})."
             )
             return JudgeModelResult(
-                model=model,
+                model=config.ollama_model,
                 prompt=prompt,
                 status="error",
-                parameters={"num_predict": str(num_predict), "seed": str(SEEDS[retry])},
+                parameters={
+                    "num_predict": str(config.max_output_tokens),
+                    "seed": str(config.seeds[retry]),
+                },
                 response=str(response),
                 quality_estimation=None,
                 quality_estimation_dict=None,
@@ -1323,22 +1306,23 @@ class _OllamaModel:
                 f"Successfully got a valid response after retry {retry} for one query."
             )
             return JudgeModelResult(
-                model=model,
+                model=config.ollama_model,
                 prompt=prompt,
                 status="ok",
-                parameters={"num_predict": str(num_predict), "seed": str(SEEDS[retry])},
+                parameters={
+                    "num_predict": str(config.max_output_tokens),
+                    "seed": str(config.seeds[retry]),
+                },
                 response=str(response),
                 quality_estimation=qe,
                 quality_estimation_dict=r,
             )
         except Exception as _e:
             try:
-                if retry < MAX_RETRY:
+                if retry < config.max_retry:
                     return _OllamaModel._get_ollama_response_fallback(
                         client,
-                        model=model,
-                        num_predict=num_predict,
-                        keep_alive=keep_alive,
+                        config=config,
                         src=src,
                         mt=mt,
                         src_lang=src_lang,
@@ -1347,27 +1331,25 @@ class _OllamaModel:
                     )
                 r = json.loads(response.response)
                 logger.error(
-                    f"Failed getting a valid response at retry {retry} > MAX_RETRY."
+                    f"Failed getting a valid response at retry {retry} > MAX_RETRY ({config.max_retry})."
                 )
                 return JudgeModelResult(
-                    model=model,
+                    model=config.ollama_model,
                     prompt=prompt,
                     status="error",
                     parameters={
-                        "num_predict": str(num_predict),
-                        "seed": str(SEEDS[retry]),
+                        "num_predict": str(config.max_output_tokens),
+                        "seed": str(config.seeds[retry]),
                     },
                     response=str(response),
                     quality_estimation=None,
                     quality_estimation_dict=r,
                 )
             except Exception as _e:
-                if retry < MAX_RETRY:
+                if retry < config.max_retry:
                     return _OllamaModel._get_ollama_response_fallback(
                         client,
-                        model=model,
-                        num_predict=num_predict,
-                        keep_alive=keep_alive,
+                        config=config,
                         src=src,
                         mt=mt,
                         src_lang=src_lang,
@@ -1375,26 +1357,31 @@ class _OllamaModel:
                         retry=retry + 1,
                     )
                 logger.error(
-                    f"Failed getting a valid response at retry {retry} > MAX_RETRY."
+                    f"Failed getting a valid response at retry {retry} > MAX_RETRY ({config.max_retry})."
                 )
                 return JudgeModelResult(
-                    model=model,
+                    model=config.ollama_model,
                     prompt=prompt,
                     status="error",
                     parameters={
-                        "num_predict": str(num_predict),
-                        "seed": str(SEEDS[retry]),
+                        "num_predict": str(config.max_output_tokens),
+                        "seed": str(config.seeds[retry]),
                     },
                     response=str(response),
                     quality_estimation=None,
                     quality_estimation_dict=None,
                 )
-        logger.error(f"Failed getting a valid response at retry {retry} > MAX_RETRY.")
+        logger.error(
+            f"Failed getting a valid response at retry {retry} > MAX_RETRY ({config.max_retry})."
+        )
         return JudgeModelResult(
-            model=model,
+            model=config.ollama_model,
             prompt=prompt,
             status="error",
-            parameters={"num_predict": str(num_predict), "seed": str(SEEDS[retry])},
+            parameters={
+                "num_predict": str(config.max_output_tokens),
+                "seed": str(config.seeds[retry]),
+            },
             response=str(response) if response is not None else None,
             quality_estimation=None,
             quality_estimation_dict=None,
@@ -1550,9 +1537,7 @@ class Judge:
             ),
             ollama=_OllamaModel._get_ollama_response(
                 self.__ollama,
-                model=self.ollama_model,
-                num_predict=MAX_OUTPUT_TOKENS,
-                keep_alive=OLLAMA_KEEP_ALIVE,
+                self.config,
                 src=src,
                 mt=mt,
                 src_lang=src_lang,
