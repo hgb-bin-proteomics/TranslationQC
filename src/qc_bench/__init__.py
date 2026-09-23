@@ -93,6 +93,7 @@ __all__ = [
     "Judge",
     "JudgeResult",
     "JudgeModelResult",
+    "JudgeConfig",
     "TranslationError",
     "QualityEstimation",
     "annotate_csv",
@@ -101,6 +102,6 @@ __version__ = "0.1.0"
 __author__ = "Micha Johannes Birklbauer"
 
 from ._main import main
-from ._judge import Judge, JudgeResult, JudgeModelResult
+from ._judge import Judge, JudgeResult, JudgeModelResult, JudgeConfig
 from ._translation import TranslationError, QualityEstimation
 from ._util import annotate_csv
