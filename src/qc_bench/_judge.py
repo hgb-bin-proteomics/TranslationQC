@@ -1565,6 +1565,37 @@ class Judge:
         'mistral:7b'
         >>> jr.ollama.score
         0.95
+
+        >>> from qc_bench import Judge
+        >>> judge = Judge(
+        ...     openai=False,
+        ...     anthropic=False,
+        ...     google=False,
+        ...     ollama=True,
+        ...     config="config/judge_config.toml",
+        ... )
+        >>> jr = judge.score(
+        ...     src="The mitochondria is the powerhouse of the cell.",
+        ...     mt="Das Mitochondrium ist das Kraftwerk der Zelle.",
+        ...     src_lang="English",
+        ...     mt_lang="German",
+        ... )
+        >>> type(jr)
+        <class 'qc_bench._judge.JudgeResult'>
+        >>> jr.openai is None
+        True
+        >>> jr.anthropic is None
+        True
+        >>> jr.google is None
+        True
+        >>> jr.ollama is None
+        False
+        >>> type(jr.ollama)
+        <class 'qc_bench._judge.JudgeModelResult'>
+        >>> jr.ollama.model
+        'gemma4:e4b'
+        >>> jr.ollama.score
+        1.0
         """
         return JudgeResult(
             openai=_OpenAIModel._get_openai_response(
