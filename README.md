@@ -85,7 +85,8 @@ Seeds:                      1337, 10081995, 18041970, 1071966, 3082023, 24042025
 INFO:qc_bench._main:Selected Ollama model: gemma4:e4b
 INFO:qc_bench._util:Reading file data/test.csv...
 INFO:qc_bench._util:Successfully read file data/test.csv!
-Annotating data/test.csv...:   0%|                                                                                             | 0/1 [00:00<?, ?it/s]INFO:httpx:HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
+Annotating data/test.csv...:   0%|                                                                                     | 0/1 [00:00<?, ?it/s]
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
 INFO:qc_bench._judge:Successfully got a valid response after retry 0 for one query.
 Annotating data/test.csv...: 100%|█████████████████████████████████████████████████████████████████████████████████████| 1/1 [00:20<00:00, 20.08s/it]
 INFO:qc_bench._util:Finished annotation of data/test.csv!
