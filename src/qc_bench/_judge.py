@@ -778,6 +778,7 @@ class _GoogleModel:
     @staticmethod
     def _get_gemini_response(
         client: Optional[Google],
+        config: JudgeConfig,
         src: str,
         mt: str,
         src_lang: str,
@@ -792,29 +793,30 @@ class _GoogleModel:
         response = None
         try:
             response = client.models.generate_content(
-                model=GOOGLE_MODEL,
+                model=config.google_model,
                 contents=prompt,
                 config=GoogleTypes.GenerateContentConfig(
                     # https://ai.google.dev/gemini-api/docs/gemini-3?hl=de#thinking_level
                     # https://ai.google.dev/gemini-api/docs/thinking#thinking-levels
                     thinking_config=GoogleTypes.ThinkingConfig(
-                        thinking_level=GOOGLE_THINKING_LEVEL
+                        thinking_level=config.google_thinking_level
                     ),
                     # might be worth checking out: https://ai.google.dev/gemini-api/docs/gemini-3?hl=de#structured_outputs_with_tools
                     response_mime_type="application/json",
                     response_json_schema=QualityEstimation.model_json_schema(),
-                    max_output_tokens=MAX_OUTPUT_TOKENS,
-                    seed=SEEDS[retry],
+                    max_output_tokens=config.max_output_tokens,
+                    seed=config.seeds[retry],
                 ),
             )
         except Exception as e:
             logger.warning(
                 f"Failed getting response at retry {retry} from Gemini API due to: {e}"
             )
-            if retry < MAX_RETRY:
-                time.sleep(RETRY_WAIT_TIME)
+            if retry < config.max_retry:
+                time.sleep(config.retry_wait_time)
                 return _GoogleModel._get_gemini_response(
                     client,
+                    config=config,
                     src=src,
                     mt=mt,
                     src_lang=src_lang,
@@ -822,23 +824,24 @@ class _GoogleModel:
                     retry=retry + 1,
                 )
             logger.error(
-                f"Failed getting a valid response at retry {retry} > MAX_RETRY."
+                f"Failed getting a valid response at retry {retry} > MAX_RETRY ({config.max_retry})."
             )
             return JudgeModelResult(
-                model=GOOGLE_MODEL,
+                model=config.google_model,
                 prompt=prompt,
                 status="error",
-                parameters={"thinking_config": GOOGLE_THINKING_LEVEL},
+                parameters={"thinking_config": config.google_thinking_level},
                 response=None,
                 quality_estimation=None,
                 quality_estimation_dict=None,
             )
 
         if response is None:
-            if retry < MAX_RETRY:
-                time.sleep(RETRY_WAIT_TIME)
+            if retry < config.max_retry:
+                time.sleep(config.retry_wait_time)
                 return _GoogleModel._get_gemini_response(
                     client,
+                    config=config,
                     src=src,
                     mt=mt,
                     src_lang=src_lang,
@@ -846,23 +849,24 @@ class _GoogleModel:
                     retry=retry + 1,
                 )
             logger.error(
-                f"Failed getting a valid response at retry {retry} > MAX_RETRY."
+                f"Failed getting a valid response at retry {retry} > MAX_RETRY ({config.max_retry})."
             )
             return JudgeModelResult(
-                model=GOOGLE_MODEL,
+                model=config.google_model,
                 prompt=prompt,
                 status="error",
-                parameters={"thinking_config": GOOGLE_THINKING_LEVEL},
+                parameters={"thinking_config": config.google_thinking_level},
                 response=None,
                 quality_estimation=None,
                 quality_estimation_dict=None,
             )
 
         if response.text is None:
-            if retry < MAX_RETRY:
-                time.sleep(RETRY_WAIT_TIME)
+            if retry < config.max_retry:
+                time.sleep(config.retry_wait_time)
                 return _GoogleModel._get_gemini_response(
                     client,
+                    config=config,
                     src=src,
                     mt=mt,
                     src_lang=src_lang,
@@ -870,13 +874,13 @@ class _GoogleModel:
                     retry=retry + 1,
                 )
             logger.error(
-                f"Failed getting a valid response at retry {retry} > MAX_RETRY."
+                f"Failed getting a valid response at retry {retry} > MAX_RETRY ({config.max_retry})."
             )
             return JudgeModelResult(
-                model=GOOGLE_MODEL,
+                model=config.google_model,
                 prompt=prompt,
                 status="error",
-                parameters={"thinking_config": GOOGLE_THINKING_LEVEL},
+                parameters={"thinking_config": config.google_thinking_level},
                 response=str(response),
                 quality_estimation=None,
                 quality_estimation_dict=None,
@@ -889,19 +893,20 @@ class _GoogleModel:
                 f"Successfully got a valid response after retry {retry} for one query."
             )
             return JudgeModelResult(
-                model=GOOGLE_MODEL,
+                model=config.google_model,
                 prompt=prompt,
                 status="ok",
-                parameters={"thinking_config": GOOGLE_THINKING_LEVEL},
+                parameters={"thinking_config": config.google_thinking_level},
                 response=str(response),
                 quality_estimation=qe,
                 quality_estimation_dict=r,
             )
         except Exception as _e:
             try:
-                if retry < MAX_RETRY:
+                if retry < config.max_retry:
                     return _GoogleModel._get_gemini_response(
                         client,
+                        config=config,
                         src=src,
                         mt=mt,
                         src_lang=src_lang,
@@ -910,21 +915,22 @@ class _GoogleModel:
                     )
                 r = json.loads(response.text)
                 logger.error(
-                    f"Failed getting a valid response at retry {retry} > MAX_RETRY."
+                    f"Failed getting a valid response at retry {retry} > MAX_RETRY ({config.max_retry})."
                 )
                 return JudgeModelResult(
-                    model=GOOGLE_MODEL,
+                    model=config.google_model,
                     prompt=prompt,
                     status="error",
-                    parameters={"thinking_config": GOOGLE_THINKING_LEVEL},
+                    parameters={"thinking_config": config.google_thinking_level},
                     response=str(response),
                     quality_estimation=None,
                     quality_estimation_dict=r,
                 )
             except Exception as _e:
-                if retry < MAX_RETRY:
+                if retry < config.max_retry:
                     return _GoogleModel._get_gemini_response(
                         client,
+                        config=config,
                         src=src,
                         mt=mt,
                         src_lang=src_lang,
@@ -932,23 +938,25 @@ class _GoogleModel:
                         retry=retry + 1,
                     )
                 logger.error(
-                    f"Failed getting a valid response at retry {retry} > MAX_RETRY."
+                    f"Failed getting a valid response at retry {retry} > MAX_RETRY ({config.max_retry})."
                 )
                 return JudgeModelResult(
-                    model=GOOGLE_MODEL,
+                    model=config.google_model,
                     prompt=prompt,
                     status="error",
-                    parameters={"thinking_config": GOOGLE_THINKING_LEVEL},
+                    parameters={"thinking_config": config.google_thinking_level},
                     response=str(response),
                     quality_estimation=None,
                     quality_estimation_dict=None,
                 )
-        logger.error(f"Failed getting a valid response at retry {retry} > MAX_RETRY.")
+        logger.error(
+            f"Failed getting a valid response at retry {retry} > MAX_RETRY ({config.max_retry})."
+        )
         return JudgeModelResult(
-            model=GOOGLE_MODEL,
+            model=config.google_model,
             prompt=prompt,
             status="error",
-            parameters={"thinking_config": GOOGLE_THINKING_LEVEL},
+            parameters={"thinking_config": config.google_thinking_level},
             response=str(response) if response is not None else None,
             quality_estimation=None,
             quality_estimation_dict=None,
@@ -1533,7 +1541,12 @@ class Judge:
                 mt_lang=mt_lang,
             ),
             google=_GoogleModel._get_gemini_response(
-                self.__google, src=src, mt=mt, src_lang=src_lang, mt_lang=mt_lang
+                self.__google,
+                self.config,
+                src=src,
+                mt=mt,
+                src_lang=src_lang,
+                mt_lang=mt_lang,
             ),
             ollama=_OllamaModel._get_ollama_response(
                 self.__ollama,
