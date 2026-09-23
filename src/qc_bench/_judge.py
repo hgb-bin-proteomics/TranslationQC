@@ -145,7 +145,7 @@ class JudgeConfig(BaseModel):
         `here <https://platform.claude.com/docs/en/models/overview>`_.
     """
     anthropic_thinking_level: Annotated[
-        str,
+        Literal["low", "medium", "high", "xhigh", "max"],
         Field(frozen=True, description="The Anthropic thinking level of the model."),
     ] = ANTHROPIC_THINKING_LEVEL
     r"""The Anthropic thinking level of the model. See
@@ -571,6 +571,7 @@ class _AnthropicModel:
     @staticmethod
     def _get_anthropic_response(
         client: Optional[Anthropic],
+        config: JudgeConfig,
         src: str,
         mt: str,
         src_lang: str,
@@ -588,25 +589,26 @@ class _AnthropicModel:
         try:
             # https://platform.claude.com/docs/en/build-with-claude/structured-outputs#quick-start
             response = client.messages.parse(
-                model=ANTHROPIC_MODEL,
+                model=config.anthropic_model,
                 # https://platform.claude.com/docs/en/build-with-claude/working-with-messages#system-role-in-messages
                 system=system_instruction,
                 messages=[
                     {"role": "user", "content": user_instruction},
                 ],
                 # https://platform.claude.com/docs/en/build-with-claude/effort
-                output_config={"effort": ANTHROPIC_THINKING_LEVEL},
+                output_config={"effort": config.anthropic_thinking_level},
                 output_format=QualityEstimation,
-                max_tokens=MAX_OUTPUT_TOKENS,
+                max_tokens=config.max_output_tokens,
             )
         except Exception as e:
             logger.warning(
                 f"Failed getting response at retry {retry} from Anthropic API due to: {e}"
             )
-            if retry < MAX_RETRY:
-                time.sleep(RETRY_WAIT_TIME)
+            if retry < config.max_retry:
+                time.sleep(config.retry_wait_time)
                 return _AnthropicModel._get_anthropic_response(
                     client,
+                    config=config,
                     src=src,
                     mt=mt,
                     src_lang=src_lang,
@@ -614,22 +616,23 @@ class _AnthropicModel:
                     retry=retry + 1,
                 )
             logger.error(
-                f"Failed getting response at retry {retry} > MAX_RETRY from Anthropic API due to: {e}"
+                f"Failed getting response at retry {retry} > MAX_RETRY ({config.max_retry}) from Anthropic API due to: {e}"
             )
             return JudgeModelResult(
-                model=ANTHROPIC_MODEL,
+                model=config.anthropic_model,
                 prompt=prompt,
                 status="error",
-                parameters={"effort": ANTHROPIC_THINKING_LEVEL},
+                parameters={"effort": config.anthropic_thinking_level},
                 response=None,
                 quality_estimation=None,
                 quality_estimation_dict=None,
             )
 
         if response is None:
-            if retry < MAX_RETRY:
+            if retry < config.max_retry:
                 return _AnthropicModel._get_anthropic_response(
                     client,
+                    config=config,
                     src=src,
                     mt=mt,
                     src_lang=src_lang,
@@ -637,22 +640,23 @@ class _AnthropicModel:
                     retry=retry + 1,
                 )
             logger.error(
-                f"Failed getting a valid response at retry {retry} > MAX_RETRY."
+                f"Failed getting a valid response at retry {retry} > MAX_RETRY ({config.max_retry})."
             )
             return JudgeModelResult(
-                model=ANTHROPIC_MODEL,
+                model=config.anthropic_model,
                 prompt=prompt,
                 status="error",
-                parameters={"effort": ANTHROPIC_THINKING_LEVEL},
+                parameters={"effort": config.anthropic_thinking_level},
                 response=None,
                 quality_estimation=None,
                 quality_estimation_dict=None,
             )
 
         if response.parsed_output is None:
-            if retry < MAX_RETRY:
+            if retry < config.max_retry:
                 return _AnthropicModel._get_anthropic_response(
                     client,
+                    config=config,
                     src=src,
                     mt=mt,
                     src_lang=src_lang,
@@ -660,13 +664,13 @@ class _AnthropicModel:
                     retry=retry + 1,
                 )
             logger.error(
-                f"Failed getting a valid response at retry {retry} > MAX_RETRY."
+                f"Failed getting a valid response at retry {retry} > MAX_RETRY ({config.max_retry})."
             )
             return JudgeModelResult(
-                model=ANTHROPIC_MODEL,
+                model=config.anthropic_model,
                 prompt=prompt,
                 status="error",
-                parameters={"effort": ANTHROPIC_THINKING_LEVEL},
+                parameters={"effort": config.anthropic_thinking_level},
                 response=str(response),
                 quality_estimation=None,
                 quality_estimation_dict=None,
@@ -678,18 +682,19 @@ class _AnthropicModel:
                 f"Successfully got a valid response after retry {retry} for one query."
             )
             return JudgeModelResult(
-                model=ANTHROPIC_MODEL,
+                model=config.anthropic_model,
                 prompt=prompt,
                 status="ok",
-                parameters={"effort": ANTHROPIC_THINKING_LEVEL},
+                parameters={"effort": config.anthropic_thinking_level},
                 response=str(response),
                 quality_estimation=response.parsed_output,
                 quality_estimation_dict=r,
             )
         except Exception as _e:
-            if retry < MAX_RETRY:
+            if retry < config.max_retry:
                 return _AnthropicModel._get_anthropic_response(
                     client,
+                    config=config,
                     src=src,
                     mt=mt,
                     src_lang=src_lang,
@@ -697,23 +702,25 @@ class _AnthropicModel:
                     retry=retry + 1,
                 )
             logger.error(
-                f"Failed getting a valid response at retry {retry} > MAX_RETRY."
+                f"Failed getting a valid response at retry {retry} > MAX_RETRY ({config.max_retry})."
             )
             return JudgeModelResult(
-                model=ANTHROPIC_MODEL,
+                model=config.anthropic_model,
                 prompt=prompt,
                 status="error",
-                parameters={"effort": ANTHROPIC_THINKING_LEVEL},
+                parameters={"effort": config.anthropic_thinking_level},
                 response=str(response),
                 quality_estimation=None,
                 quality_estimation_dict=None,
             )
-        logger.error(f"Failed getting a valid response at retry {retry} > MAX_RETRY.")
+        logger.error(
+            f"Failed getting a valid response at retry {retry} > MAX_RETRY ({config.max_retry})."
+        )
         return JudgeModelResult(
-            model=ANTHROPIC_MODEL,
+            model=config.anthropic_model,
             prompt=prompt,
             status="error",
-            parameters={"effort": ANTHROPIC_THINKING_LEVEL},
+            parameters={"effort": config.anthropic_thinking_level},
             response=str(response) if response is not None else None,
             quality_estimation=None,
             quality_estimation_dict=None,
@@ -1518,7 +1525,12 @@ class Judge:
                 mt_lang=mt_lang,
             ),
             anthropic=_AnthropicModel._get_anthropic_response(
-                self.__anthropic, src=src, mt=mt, src_lang=src_lang, mt_lang=mt_lang
+                self.__anthropic,
+                self.config,
+                src=src,
+                mt=mt,
+                src_lang=src_lang,
+                mt_lang=mt_lang,
             ),
             google=_GoogleModel._get_gemini_response(
                 self.__google, src=src, mt=mt, src_lang=src_lang, mt_lang=mt_lang
