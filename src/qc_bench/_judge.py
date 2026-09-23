@@ -253,38 +253,36 @@ class JudgeConfig(BaseModel):
         retry_wait_time = RETRY_WAIT_TIME
         seeds = SEEDS
         if "OPENAI" in parsed_toml:
-            if "OPENAI_MODEL" in parsed_toml["OPENAI"]:
-                openai_model = parsed_toml["OPENAI"]["OPENAI_MODEL"]
-            if "OPENAI_THINKING_LEVEL" in parsed_toml["OPENAI"]:
-                openai_thinking_level = parsed_toml["OPENAI"]["OPENAI_THINKING_LEVEL"]
+            if "openai_model" in parsed_toml["OPENAI"]:
+                openai_model = parsed_toml["OPENAI"]["openai_model"]
+            if "openai_thinking_level" in parsed_toml["OPENAI"]:
+                openai_thinking_level = parsed_toml["OPENAI"]["openai_thinking_level"]
         if "ANTHROPIC" in parsed_toml:
-            if "ANTHROPIC_MODEL" in parsed_toml["ANTHROPIC"]:
-                anthropic_model = parsed_toml["ANTHROPIC"]["ANTHROPIC_MODEL"]
-            if "ANTHROPIC_THINKING_LEVEL" in parsed_toml["ANTHROPIC"]:
-                anthropic_thinking_level = parsed_toml["ANTHROPIC"][
-                    "ANTHROPIC_THINKING_LEVEL"
-                ]
+            if "anthropic_model" in parsed_toml["ANTHROPIC"]:
+                anthropic_model = parsed_toml["ANTHROPIC"]["anthropic_model"]
+            if "anthropic_thinking_level" in parsed_toml["ANTHROPIC"]:
+                anthropic_thinking_level = parsed_toml["ANTHROPIC"]["anthropic_thinking_level"]  # fmt: skip
         if "GOOGLE" in parsed_toml:
-            if "GOOGLE_MODEL" in parsed_toml["GOOGLE"]:
-                google_model = parsed_toml["GOOGLE"]["GOOGLE_MODEL"]
-            if "GOOGLE_THINKING_LEVEL" in parsed_toml["GOOGLE"]:
-                google_thinking_level = parsed_toml["GOOGLE"]["GOOGLE_THINKING_LEVEL"]
+            if "google_model" in parsed_toml["GOOGLE"]:
+                google_model = parsed_toml["GOOGLE"]["google_model"]
+            if "google_thinking_level" in parsed_toml["GOOGLE"]:
+                google_thinking_level = parsed_toml["GOOGLE"]["google_thinking_level"]
         if "OLLAMA" in parsed_toml:
-            if "OLLAMA_HOST" in parsed_toml["OLLAMA"]:
-                ollama_host = parsed_toml["OLLAMA"]["OLLAMA_HOST"]
-            if "OLLAMA_MODEL" in parsed_toml["OLLAMA"]:
-                ollama_model = parsed_toml["OLLAMA"]["OLLAMA_MODEL"]
-            if "OLLAMA_KEEP_ALIVE" in parsed_toml["OLLAMA"]:
-                ollama_keep_alive = parsed_toml["OLLAMA"]["OLLAMA_KEEP_ALIVE"]
+            if "ollama_host" in parsed_toml["OLLAMA"]:
+                ollama_host = parsed_toml["OLLAMA"]["ollama_host"]
+            if "ollama_model" in parsed_toml["OLLAMA"]:
+                ollama_model = parsed_toml["OLLAMA"]["ollama_model"]
+            if "ollama_keep_alive" in parsed_toml["OLLAMA"]:
+                ollama_keep_alive = parsed_toml["OLLAMA"]["ollama_keep_alive"]
         if "GENERAL" in parsed_toml:
-            if "MAX_OUTPUT_TOKENS" in parsed_toml["GENERAL"]:
-                max_output_tokens = parsed_toml["GENERAL"]["MAX_OUTPUT_TOKENS"]
-            if "MAX_RETRY" in parsed_toml["GENERAL"]:
-                max_retry = parsed_toml["GENERAL"]["MAX_RETRY"]
-            if "RETRY_WAIT_TIME" in parsed_toml["GENERAL"]:
-                retry_wait_time = parsed_toml["GENERAL"]["RETRY_WAIT_TIME"]
-            if "SEEDS" in parsed_toml["GENERAL"]:
-                seeds = parsed_toml["GENERAL"]["SEEDS"]
+            if "max_output_tokens" in parsed_toml["GENERAL"]:
+                max_output_tokens = parsed_toml["GENERAL"]["max_output_tokens"]
+            if "max_retry" in parsed_toml["GENERAL"]:
+                max_retry = parsed_toml["GENERAL"]["max_retry"]
+            if "retry_wait_time" in parsed_toml["GENERAL"]:
+                retry_wait_time = parsed_toml["GENERAL"]["retry_wait_time"]
+            if "seeds" in parsed_toml["GENERAL"]:
+                seeds = parsed_toml["GENERAL"]["seeds"]
         return JudgeConfig(
             openai_model=openai_model,
             openai_thinking_level=openai_thinking_level,
