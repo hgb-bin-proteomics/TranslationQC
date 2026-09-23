@@ -1452,7 +1452,7 @@ class Judge:
         anthropic: Optional[str | bool] = None,
         google: Optional[str | bool] = None,
         ollama: Optional[str | bool] = None,
-        config: Optional[JudgeConfig] = None,
+        config: Optional[JudgeConfig | str] = None,
     ):
         # config
         if config is None:
