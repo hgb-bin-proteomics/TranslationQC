@@ -3,10 +3,13 @@
 # 2026 (c) Micha Birklbauer
 # https://github.com/michabirklbauer/
 
+from __future__ import annotations
+
 import os
 import time
 import json
 import logging
+import tomllib
 from openai import OpenAI
 from anthropic import Anthropic
 from google.genai import Client as Google
@@ -18,7 +21,7 @@ from ollama import ResponseError as OllamaResponseError
 from ollama import pull as pull_ollama_model
 from pydantic import BaseModel, Field, ConfigDict, computed_field
 
-from typing import Optional, Annotated, Any, Literal
+from typing import Optional, Annotated, Any, Literal, override
 
 from ._translation import QualityEstimation
 from ._constants import MAX_RETRY, MAX_OUTPUT_TOKENS, RETRY_WAIT_TIME, SEEDS
@@ -114,6 +117,189 @@ class JudgeResult(BaseModel):
     r"""
     Pydantic configuration for the underlying validation model.
     """
+
+
+class JudgeConfig(BaseModel):
+    r"""Configuration for all LLMs."""
+
+    openai_model: Annotated[
+        str,
+        Field(frozen=True, description="The OpenAI model identifier."),
+    ] = OPENAI_MODEL
+    r"""The OpenAI model identifier. See
+        `here <https://developers.openai.com/api/docs/models>`_.
+    """
+    openai_thinking_level: Annotated[
+        str,
+        Field(frozen=True, description="The OpenAI thinking level of the model."),
+    ] = OPENAI_THINKING_LEVEL
+    r"""The OpenAI thinking level of the model. See
+        `here <https://developers.openai.com/api/docs/guides/reasoning?api-mode=responses>`_ and
+        `here <https://developers.openai.com/api/reference/resources/$shared#(resource)%20%24shared%20%3E%20(model)%20reasoning_effort%20%3E%20(schema)>`_.
+    """
+    anthropic_model: Annotated[
+        str,
+        Field(frozen=True, description="The Anthropic model identifier."),
+    ] = ANTHROPIC_MODEL
+    r"""The Anthropic model identifier. See
+        `here <https://platform.claude.com/docs/en/models/overview>`_.
+    """
+    anthropic_thinking_level: Annotated[
+        str,
+        Field(frozen=True, description="The Anthropic thinking level of the model."),
+    ] = ANTHROPIC_THINKING_LEVEL
+    r"""The Anthropic thinking level of the model. See
+        `here <https://platform.claude.com/docs/en/build-with-claude/effort>`_.
+    """
+    google_model: Annotated[
+        str,
+        Field(frozen=True, description="The Google model identifier."),
+    ] = GOOGLE_MODEL
+    r"""The Google model identifier. See
+        `here <https://ai.google.dev/gemini-api/docs/models>`_.
+    """
+    google_thinking_level: Annotated[
+        str,
+        Field(frozen=True, description="The Google thinking level of the model."),
+    ] = GOOGLE_THINKING_LEVEL
+    r"""The Google thinking level of the model. See
+        `here <https://ai.google.dev/gemini-api/docs/gemini-3?hl=de#thinking_level>`_ and
+        `here <https://ai.google.dev/gemini-api/docs/thinking#thinking-levels>`_.
+    """
+    ollama_host: Annotated[
+        str,
+        Field(frozen=True, description="The Ollama host address."),
+    ] = OLLAMA_HOST
+    r"""The Ollama host address (optionally including port)."""
+    ollama_model: Annotated[
+        str,
+        Field(frozen=True, description="The Ollama model to use."),
+    ] = OLLAMA_DEFAULT_MODEL
+    r"""The Ollama model to use, given as a valid model identifier. See
+        `here <https://ollama.com/search>`_.
+    """
+    ollama_keep_alive: Annotated[
+        int | str,
+        Field(frozen=True, description="The Ollama model in-memory duration."),
+    ] = OLLAMA_KEEP_ALIVE
+    r"""The Ollama model in-memory duration."""
+    max_output_tokens: Annotated[
+        int,
+        Field(frozen=True, description="Maximum number of output tokens to generate."),
+    ] = MAX_OUTPUT_TOKENS
+    r"""Maximum number of output tokens to generate."""
+    max_retry: Annotated[
+        int,
+        Field(frozen=True, description="The maximum number of request retries."),
+    ] = MAX_RETRY
+    r"""The maximum number of request retries for failed API calls."""
+    retry_wait_time: Annotated[
+        float,
+        Field(
+            frozen=True,
+            description="Time in seconds to wait between failed API requests.",
+        ),
+    ] = RETRY_WAIT_TIME
+    r"""Time in seconds to wait between failed API requests."""
+    seeds: Annotated[
+        list[int],
+        Field(frozen=True, description="Random seeds to use for generation."),
+    ] = SEEDS
+    r"""Random seeds to use for generation.
+        Length must be at least``max_retry + 1``.
+    """
+    model_config = ConfigDict(
+        validate_assignment=True, strict=True, str_strip_whitespace=True
+    )
+    r"""
+    Pydantic configuration for the underlying validation model.
+    """
+
+    @override
+    def model_post_init(self, context: Any = None) -> None:
+        r"""
+        Performs extra validation and post init functions.
+
+        Warnings
+        --------
+        This method should not be called manually!
+        """
+        if len(self.seeds) < self.max_retry + 1:
+            raise ValueError(
+                f"Parameter 'seeds' must at least length {self.max_retry + 1}!"
+            )
+
+    @classmethod
+    def model_validate_toml(cls, toml_path: str) -> JudgeConfig:
+        parsed_toml = None
+        with open(toml_path, "rb") as f:
+            parsed_toml = tomllib.load(f)
+            f.close()
+        if parsed_toml is None:
+            raise RuntimeError(
+                f"Could not read {toml_path}. Is it in valid TOML format?"
+            )
+        openai_model = OPENAI_MODEL
+        openai_thinking_level = OPENAI_THINKING_LEVEL
+        anthropic_model = ANTHROPIC_MODEL
+        anthropic_thinking_level = ANTHROPIC_THINKING_LEVEL
+        google_model = GOOGLE_MODEL
+        google_thinking_level = GOOGLE_THINKING_LEVEL
+        ollama_host = OLLAMA_HOST
+        ollama_model = OLLAMA_DEFAULT_MODEL
+        ollama_keep_alive = OLLAMA_KEEP_ALIVE
+        max_output_tokens = MAX_OUTPUT_TOKENS
+        max_retry = MAX_RETRY
+        retry_wait_time = RETRY_WAIT_TIME
+        seeds = SEEDS
+        if "OPENAI" in parsed_toml:
+            if "OPENAI_MODEL" in parsed_toml["OPENAI"]:
+                openai_model = parsed_toml["OPENAI"]["OPENAI_MODEL"]
+            if "OPENAI_THINKING_LEVEL" in parsed_toml["OPENAI"]:
+                openai_thinking_level = parsed_toml["OPENAI"]["OPENAI_THINKING_LEVEL"]
+        if "ANTHROPIC" in parsed_toml:
+            if "ANTHROPIC_MODEL" in parsed_toml["ANTHROPIC"]:
+                anthropic_model = parsed_toml["ANTHROPIC"]["ANTHROPIC_MODEL"]
+            if "ANTHROPIC_THINKING_LEVEL" in parsed_toml["ANTHROPIC"]:
+                anthropic_thinking_level = parsed_toml["ANTHROPIC"][
+                    "ANTHROPIC_THINKING_LEVEL"
+                ]
+        if "GOOGLE" in parsed_toml:
+            if "GOOGLE_MODEL" in parsed_toml["GOOGLE"]:
+                google_model = parsed_toml["GOOGLE"]["GOOGLE_MODEL"]
+            if "GOOGLE_THINKING_LEVEL" in parsed_toml["GOOGLE"]:
+                google_thinking_level = parsed_toml["GOOGLE"]["GOOGLE_THINKING_LEVEL"]
+        if "OLLAMA" in parsed_toml:
+            if "OLLAMA_HOST" in parsed_toml["OLLAMA"]:
+                ollama_host = parsed_toml["OLLAMA"]["OLLAMA_HOST"]
+            if "OLLAMA_MODEL" in parsed_toml["OLLAMA"]:
+                ollama_model = parsed_toml["OLLAMA"]["OLLAMA_MODEL"]
+            if "OLLAMA_KEEP_ALIVE" in parsed_toml["OLLAMA"]:
+                ollama_keep_alive = parsed_toml["OLLAMA"]["OLLAMA_KEEP_ALIVE"]
+        if "GENERAL" in parsed_toml:
+            if "MAX_OUTPUT_TOKENS" in parsed_toml["GENERAL"]:
+                max_output_tokens = parsed_toml["GENERAL"]["MAX_OUTPUT_TOKENS"]
+            if "MAX_RETRY" in parsed_toml["GENERAL"]:
+                max_retry = parsed_toml["GENERAL"]["MAX_RETRY"]
+            if "RETRY_WAIT_TIME" in parsed_toml["GENERAL"]:
+                retry_wait_time = parsed_toml["GENERAL"]["RETRY_WAIT_TIME"]
+            if "SEEDS" in parsed_toml["GENERAL"]:
+                seeds = parsed_toml["GENERAL"]["SEEDS"]
+        return JudgeConfig(
+            openai_model=openai_model,
+            openai_thinking_level=openai_thinking_level,
+            anthropic_model=anthropic_model,
+            anthropic_thinking_level=anthropic_thinking_level,
+            google_model=google_model,
+            google_thinking_level=google_thinking_level,
+            ollama_host=ollama_host,
+            ollama_model=ollama_model,
+            ollama_keep_alive=ollama_keep_alive,
+            max_output_tokens=max_output_tokens,
+            max_retry=max_retry,
+            retry_wait_time=retry_wait_time,
+            seeds=seeds,
+        )
 
 
 class _OpenAIModel:
