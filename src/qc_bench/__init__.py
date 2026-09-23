@@ -55,12 +55,16 @@ r"""Performs quality estimation for a list of translations using LLMs from OpenA
     Retry Waiting Time:         30.0
     Seeds:                      1337, 10081995, 18041970, 1071966, 3082023, 24042025
     -----------------------------------------------------
+    INFO:qc_bench._judge:OpenAI judge disabled for this instance!
+    INFO:qc_bench._judge:Anthropic judge disabled for this instance!
+    INFO:qc_bench._judge:Google judge disabled for this instance!
+    INFO:qc_bench._judge:Ollama judge enabled for this instance!
     INFO:qc_bench._main:Selected Ollama model: gemma4:e4b
     INFO:qc_bench._util:Reading file data/test.csv...
     INFO:qc_bench._util:Successfully read file data/test.csv!
     Annotating data/test.csv...:   0%|                                                                                             | 0/1 [00:00<?, ?it/s]INFO:httpx:HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
     INFO:qc_bench._judge:Successfully got a valid response after retry 0 for one query.
-    Annotating data/test.csv...: 100%|█████████████████████████████████████████████████████████████████████████████████████| 1/1 [00:20<00:00, 20.36s/it]
+    Annotating data/test.csv...: 100%|█████████████████████████████████████████████████████████████████████████████████████| 1/1 [00:21<00:00, 21.42s/it]
     INFO:qc_bench._util:Finished annotation of data/test.csv!
     INFO:qc_bench._util:Writing files to disk...
     INFO:qc_bench._util:Successfully wrote file data/test_annotated.csv!
@@ -71,7 +75,7 @@ r"""Performs quality estimation for a list of translations using LLMs from OpenA
     │ ---                              ┆ ---              ┆ ---      ┆ ---     ┆ ---          ┆ ---             ┆ ---          ┆ ---                     │
     │ str                              ┆ str              ┆ str      ┆ str     ┆ f64          ┆ f64             ┆ f64          ┆ f64                     │
     ╞══════════════════════════════════╪══════════════════╪══════════╪═════════╪══════════════╪═════════════════╪══════════════╪═════════════════════════╡
-    │ The lights are dimmable, but I…  ┆ Die Lichter sind ┆ English  ┆ German  ┆ NaN          ┆ NaN             ┆ NaN          ┆ 0.95                    │
+    │ The lights are dimmable, but I…  ┆ Die Lichter sind ┆ English  ┆ German  ┆ NaN          ┆ NaN             ┆ NaN          ┆ 0.97                    │
     │                                  ┆ dimmbar, aber…   ┆          ┆         ┆              ┆                 ┆              ┆                         │
     └──────────────────────────────────┴──────────────────┴──────────┴─────────┴──────────────┴─────────────────┴──────────────┴─────────────────────────┘
     INFO:qc_bench._main:Successfully scored and annotated all translations!
