@@ -97,7 +97,7 @@ def annotate_csv(
         pl.Series("score_openai", score_openai),
         pl.Series("score_anthropic", score_anthropic),
         pl.Series("score_google", score_google),
-        pl.Series(f"score_ollama_{judge.ollama_model}", score_ollama),
+        pl.Series(f"score_ollama_{judge.config.ollama_model}", score_ollama),
     )
     logger.info(f"Finished annotation of {input_file}!")
     # saving

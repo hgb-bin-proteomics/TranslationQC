@@ -56,6 +56,15 @@ def main(argv: Optional[list[str]] = None) -> int:
         type=str,
     )
     parser.add_argument(
+        "-c",
+        "--config",
+        dest="config",
+        default=None,
+        required=False,
+        help="path/name of the configuration file in TOML format (str).",
+        type=str,
+    )
+    parser.add_argument(
         "--openai",
         dest="openai",
         action="store_true",
@@ -108,10 +117,11 @@ def main(argv: Optional[list[str]] = None) -> int:
             ollama=str(args.ollama_model).strip()
             if (args.ollama_model is not None and args.ollama)
             else args.ollama,
+            config=args.config if args.config is not None else None,
         )
 
         if args.ollama:
-            logger.info(f"Selected Ollama model: {judge.ollama_model}")
+            logger.info(f"Selected Ollama model: {judge.config.ollama_model}")
 
         df, _result = annotate_csv(
             input_file=args.input, judge=judge, output_file=args.output

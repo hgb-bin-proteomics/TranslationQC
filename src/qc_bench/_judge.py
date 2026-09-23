@@ -1409,12 +1409,18 @@ class Judge:
         - If ``False`` the Google model will not be used as a judge.
     ollama : str, or bool, or None, default = None
         - If a string is given, an Ollama model identifier (e.g. ``gemma4:e4b``) is expected.
-        - If ``None`` or ``True`` the default Ollama model will be used.
+        - If ``None`` or ``True`` the Ollama model from the config file will be used.
         - If ``False`` the Ollama model will not be used as a judge.
     config : JudgeConfig, str, or None, default = None
         - The configuration for the LLMs/Judge.
         - If a string is given, the path to a ``judge_config.toml`` file is expected.
         - If ``None`` the default configuration will be loaded.
+
+    Raises
+    ------
+    RuntimeError
+        If an Ollama model identifier was provided with parameter ``ollama`` but a configuration
+        was also provided via ``config`` (potential clash in model identifiers).
 
     Examples
     --------
@@ -1430,11 +1436,46 @@ class Judge:
         ollama: Optional[str | bool] = None,
         config: Optional[JudgeConfig] = None,
     ):
+        # config
+        if config is None:
+            if isinstance(ollama, str):
+                self.config = JudgeConfig(ollama_model=ollama)
+            else:
+                self.config = JudgeConfig()
+        elif isinstance(config, str):
+            self.config = JudgeConfig.model_validate_toml(config)
+            if isinstance(ollama, str):
+                logger.error(
+                    "Parameter 'ollama' seems to be a model identifier but an "
+                    "Ollama model is already given in the configuration! "
+                    "Please only use one of the two options!"
+                )
+                raise RuntimeError(
+                    "Parameter 'ollama' seems to be a model identifier but an "
+                    "Ollama model is already given in the configuration! "
+                    "Please only use one of the two options!"
+                )
+        else:
+            self.config = config
+            if isinstance(ollama, str):
+                logger.error(
+                    "Parameter 'ollama' seems to be a model identifier but an "
+                    "Ollama model is already given in the configuration! "
+                    "Please only use one of the two options!"
+                )
+                raise RuntimeError(
+                    "Parameter 'ollama' seems to be a model identifier but an "
+                    "Ollama model is already given in the configuration! "
+                    "Please only use one of the two options!"
+                )
+        logger.info(f"Loaded the following configuration:\n{self.config}")
         # openai
         if isinstance(openai, str):
             self.__openai = OpenAI(api_key=str(openai).strip())
         elif openai is None or openai:
             self.__openai = OpenAI(api_key=_OpenAIModel._get_openai_api_key())
+        else:
+            self.__openai = None
         # anthropic
         if isinstance(anthropic, str):
             self.__anthropic = Anthropic(api_key=str(anthropic).strip())
@@ -1442,25 +1483,22 @@ class Judge:
             self.__anthropic = Anthropic(
                 api_key=_AnthropicModel._get_anthropic_api_key()
             )
+        else:
+            self.__anthropic = None
         # google
         if isinstance(google, str):
             self.__google = Google(api_key=str(google).strip())
         elif google is None or google:
             self.__google = Google(api_key=_GoogleModel._get_gemini_api_key())
+        else:
+            self.__google = None
         # ollama
         if isinstance(ollama, str):
-            self.__ollama = Ollama(host=OLLAMA_HOST, headers={})
-            self.ollama_model = str(ollama).strip()
+            self.__ollama = Ollama(host=self.config.ollama_host, headers={})
         elif ollama is None or ollama:
-            self.__ollama = Ollama(host=OLLAMA_HOST, headers={})
-            self.ollama_model = OLLAMA_DEFAULT_MODEL
-        # config
-        if config is None:
-            self.config = JudgeConfig()
-        elif isinstance(config, str):
-            self.config = JudgeConfig.model_validate_toml(config)
+            self.__ollama = Ollama(host=self.config.ollama_host, headers={})
         else:
-            self.config = config
+            self.__ollama = None
 
     def score(self, src: str, mt: str, src_lang: str, mt_lang: str) -> JudgeResult:
         r"""Performs quality estimation using all setup LLMs for one translation.
