@@ -130,7 +130,7 @@ class JudgeConfig(BaseModel):
         `here <https://developers.openai.com/api/docs/models>`_.
     """
     openai_thinking_level: Annotated[
-        str,
+        Literal["none", "minimal", "low", "medium", "high", "xhigh", "max"],
         Field(frozen=True, description="The OpenAI thinking level of the model."),
     ] = OPENAI_THINKING_LEVEL
     r"""The OpenAI thinking level of the model. See
@@ -359,6 +359,7 @@ class _OpenAIModel:
     @staticmethod
     def _get_openai_response(
         client: Optional[OpenAI],
+        config: JudgeConfig,
         src: str,
         mt: str,
         src_lang: str,
@@ -376,24 +377,25 @@ class _OpenAIModel:
         try:
             # https://developers.openai.com/api/docs/guides/structured-outputs/
             response = client.responses.parse(
-                model=OPENAI_MODEL,
+                model=config.openai_model,
                 input=[
                     {"role": "system", "content": system_instruction},
                     {"role": "user", "content": user_instruction},
                 ],
                 # # https://developers.openai.com/api/docs/guides/reasoning?api-mode=responses
-                reasoning={"effort": OPENAI_THINKING_LEVEL},
+                reasoning={"effort": config.openai_thinking_level},
                 text_format=QualityEstimation,
-                max_output_tokens=MAX_OUTPUT_TOKENS,
+                max_output_tokens=config.max_output_tokens,
             )
         except Exception as e:
             logger.warning(
                 f"Failed getting response at retry {retry} from OpenAI API due to: {e}"
             )
-            if retry < MAX_RETRY:
-                time.sleep(RETRY_WAIT_TIME)
+            if retry < config.max_retry:
+                time.sleep(config.retry_wait_time)
                 return _OpenAIModel._get_openai_response(
                     client,
+                    config=config,
                     src=src,
                     mt=mt,
                     src_lang=src_lang,
@@ -401,22 +403,23 @@ class _OpenAIModel:
                     retry=retry + 1,
                 )
             logger.error(
-                f"Failed getting response at retry {retry} > MAX_RETRY from OpenAI API due to: {e}"
+                f"Failed getting response at retry {retry} > MAX_RETRY ({config.max_retry}) from OpenAI API due to: {e}"
             )
             return JudgeModelResult(
-                model=OPENAI_MODEL,
+                model=config.openai_model,
                 prompt=prompt,
                 status="error",
-                parameters={"effort": OPENAI_THINKING_LEVEL},
+                parameters={"effort": config.openai_thinking_level},
                 response=None,
                 quality_estimation=None,
                 quality_estimation_dict=None,
             )
 
         if response is None:
-            if retry < MAX_RETRY:
+            if retry < config.max_retry:
                 return _OpenAIModel._get_openai_response(
                     client,
+                    config=config,
                     src=src,
                     mt=mt,
                     src_lang=src_lang,
@@ -424,22 +427,23 @@ class _OpenAIModel:
                     retry=retry + 1,
                 )
             logger.error(
-                f"Failed getting a valid response at retry {retry} > MAX_RETRY."
+                f"Failed getting a valid response at retry {retry} > MAX_RETRY ({config.max_retry})."
             )
             return JudgeModelResult(
-                model=OPENAI_MODEL,
+                model=config.openai_model,
                 prompt=prompt,
                 status="error",
-                parameters={"effort": OPENAI_THINKING_LEVEL},
+                parameters={"effort": config.openai_thinking_level},
                 response=None,
                 quality_estimation=None,
                 quality_estimation_dict=None,
             )
 
         if response.output_parsed is None:
-            if retry < MAX_RETRY:
+            if retry < config.max_retry:
                 return _OpenAIModel._get_openai_response(
                     client,
+                    config=config,
                     src=src,
                     mt=mt,
                     src_lang=src_lang,
@@ -447,13 +451,13 @@ class _OpenAIModel:
                     retry=retry + 1,
                 )
             logger.error(
-                f"Failed getting a valid response at retry {retry} > MAX_RETRY."
+                f"Failed getting a valid response at retry {retry} > MAX_RETRY ({config.max_retry})."
             )
             return JudgeModelResult(
-                model=OPENAI_MODEL,
+                model=config.openai_model,
                 prompt=prompt,
                 status="error",
-                parameters={"effort": OPENAI_THINKING_LEVEL},
+                parameters={"effort": config.openai_thinking_level},
                 response=str(response),
                 quality_estimation=None,
                 quality_estimation_dict=None,
@@ -465,18 +469,19 @@ class _OpenAIModel:
                 f"Successfully got a valid response after retry {retry} for one query."
             )
             return JudgeModelResult(
-                model=OPENAI_MODEL,
+                model=config.openai_model,
                 prompt=prompt,
                 status="ok",
-                parameters={"effort": OPENAI_THINKING_LEVEL},
+                parameters={"effort": config.openai_thinking_level},
                 response=str(response),
                 quality_estimation=response.output_parsed,
                 quality_estimation_dict=r,
             )
         except Exception as _e:
-            if retry < MAX_RETRY:
+            if retry < config.max_retry:
                 return _OpenAIModel._get_openai_response(
                     client,
+                    config=config,
                     src=src,
                     mt=mt,
                     src_lang=src_lang,
@@ -484,23 +489,25 @@ class _OpenAIModel:
                     retry=retry + 1,
                 )
             logger.error(
-                f"Failed getting a valid response at retry {retry} > MAX_RETRY."
+                f"Failed getting a valid response at retry {retry} > MAX_RETRY ({config.max_retry})."
             )
             return JudgeModelResult(
-                model=OPENAI_MODEL,
+                model=config.openai_model,
                 prompt=prompt,
                 status="error",
-                parameters={"effort": OPENAI_THINKING_LEVEL},
+                parameters={"effort": config.openai_thinking_level},
                 response=str(response),
                 quality_estimation=None,
                 quality_estimation_dict=None,
             )
-        logger.error(f"Failed getting a valid response at retry {retry} > MAX_RETRY.")
+        logger.error(
+            f"Failed getting a valid response at retry {retry} > MAX_RETRY ({config.max_retry})."
+        )
         return JudgeModelResult(
-            model=OPENAI_MODEL,
+            model=config.openai_model,
             prompt=prompt,
             status="error",
-            parameters={"effort": OPENAI_THINKING_LEVEL},
+            parameters={"effort": config.openai_thinking_level},
             response=str(response) if response is not None else None,
             quality_estimation=None,
             quality_estimation_dict=None,
@@ -1503,7 +1510,12 @@ class Judge:
         """
         return JudgeResult(
             openai=_OpenAIModel._get_openai_response(
-                self.__openai, src=src, mt=mt, src_lang=src_lang, mt_lang=mt_lang
+                self.__openai,
+                self.config,
+                src=src,
+                mt=mt,
+                src_lang=src_lang,
+                mt_lang=mt_lang,
             ),
             anthropic=_AnthropicModel._get_anthropic_response(
                 self.__anthropic, src=src, mt=mt, src_lang=src_lang, mt_lang=mt_lang
