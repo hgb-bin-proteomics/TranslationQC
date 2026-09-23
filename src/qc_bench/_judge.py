@@ -299,6 +299,26 @@ class JudgeConfig(BaseModel):
             seeds=seeds,
         )
 
+    @override
+    def __str__(self) -> str:
+        return (
+            "-------------------- JudgeConfig --------------------\n"
+            f"OpenAI Model:               {self.openai_model}\n"
+            f"OpenAI Thinking Level:      {self.openai_thinking_level}\n"
+            f"Anthropic Model:            {self.anthropic_model}\n"
+            f"Anthropic Thinking Level:   {self.anthropic_thinking_level}\n"
+            f"Google Model:               {self.google_model}\n"
+            f"Google Thinking Level:      {self.google_thinking_level}\n"
+            f"Ollama Host:                {self.ollama_host}\n"
+            f"Ollama Model:               {self.ollama_model}\n"
+            f"Ollama Keep Alive Duration: {self.ollama_keep_alive}\n"
+            f"Maximum Output Tokens:      {self.max_output_tokens}\n"
+            f"Maximum Retries:            {self.max_retry}\n"
+            f"Retry Waiting Time:         {self.retry_wait_time}\n"
+            f"Seeds:                      {', '.join([str(seed) for seed in self.seeds])}\n"
+            "-----------------------------------------------------\n"
+        )
+
 
 class _OpenAIModel:
     @staticmethod
