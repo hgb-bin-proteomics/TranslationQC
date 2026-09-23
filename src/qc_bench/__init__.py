@@ -39,10 +39,7 @@ r"""Performs quality estimation for a list of translations using LLMs from OpenA
     INFO:qc_bench._main:Using Anthropic model: False
     INFO:qc_bench._main:Using Google model: False
     INFO:qc_bench._main:Using Ollama model: True
-    INFO:qc_bench._judge:OpenAI judge disabled for this instance!
-    INFO:qc_bench._judge:Anthropic judge disabled for this instance!
-    INFO:qc_bench._judge:Google judge disabled for this instance!
-    INFO:qc_bench._judge:Ollama judge enabled for this instance!
+    INFO:qc_bench._judge:The following judges are enabled for this instance: Ollama!
     INFO:qc_bench._judge:Loaded the following configuration:
     -------------------- JudgeConfig --------------------
     OpenAI Model:               gpt-5.4
@@ -64,7 +61,7 @@ r"""Performs quality estimation for a list of translations using LLMs from OpenA
     INFO:qc_bench._util:Successfully read file data/test.csv!
     Annotating data/test.csv...:   0%|                                                                                             | 0/1 [00:00<?, ?it/s]INFO:httpx:HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"
     INFO:qc_bench._judge:Successfully got a valid response after retry 0 for one query.
-    Annotating data/test.csv...: 100%|█████████████████████████████████████████████████████████████████████████████████████| 1/1 [00:20<00:00, 20.54s/it]
+    Annotating data/test.csv...: 100%|█████████████████████████████████████████████████████████████████████████████████████| 1/1 [00:20<00:00, 20.82s/it]
     INFO:qc_bench._util:Finished annotation of data/test.csv!
     INFO:qc_bench._util:Writing files to disk...
     INFO:qc_bench._util:Successfully wrote file data/test_annotated.csv!
