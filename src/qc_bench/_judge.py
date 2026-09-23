@@ -1402,6 +1402,10 @@ class Judge:
         - If a string is given, an Ollama model identifier (e.g. ``gemma4:e4b``) is expected.
         - If ``None`` or ``True`` the default Ollama model will be used.
         - If ``False`` the Ollama model will not be used as a judge.
+    config : JudgeConfig, str, or None, default = None
+        - The configuration for the LLMs/Judge.
+        - If a string is given, the path to a ``judge_config.toml`` file is expected.
+        - If ``None`` the default configuration will be loaded.
 
     Examples
     --------
@@ -1409,19 +1413,13 @@ class Judge:
     >>> judge = Judge(openai=False, anthropic=False, google=False, ollama="mistral:7b")
     """
 
-    __openai: OpenAI | None = None
-    __anthropic: Anthropic | None = None
-    __google: Google | None = None
-    __ollama: Ollama | None = None
-    ollama_model: str = OLLAMA_DEFAULT_MODEL
-    r"""The Ollama model identifier that is being used as a judge."""
-
     def __init__(
         self,
         openai: Optional[str | bool] = None,
         anthropic: Optional[str | bool] = None,
         google: Optional[str | bool] = None,
         ollama: Optional[str | bool] = None,
+        config: Optional[JudgeConfig] = None,
     ):
         # openai
         if isinstance(openai, str):
@@ -1447,6 +1445,13 @@ class Judge:
         elif ollama is None or ollama:
             self.__ollama = Ollama(host=OLLAMA_HOST, headers={})
             self.ollama_model = OLLAMA_DEFAULT_MODEL
+        # config
+        if config is None:
+            self.config = JudgeConfig()
+        elif isinstance(config, str):
+            self.config = JudgeConfig.model_validate_toml(config)
+        else:
+            self.config = config
 
     def score(self, src: str, mt: str, src_lang: str, mt_lang: str) -> JudgeResult:
         r"""Performs quality estimation using all setup LLMs for one translation.
