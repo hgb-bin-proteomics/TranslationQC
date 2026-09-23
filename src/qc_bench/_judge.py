@@ -1530,13 +1530,13 @@ class Judge:
             enabled_judges.append("Ollama")
         if len(enabled_judges) == 0:
             logger.error(
-                "No judges/LLMs were defined! Please setup at least one judge/LLM-provider!"
+                "No LLM-providers were setup! Please setup at least one LLM-provider!"
             )
             raise ValueError(
-                "No judges/LLMs were defined! Please setup at least one judge/LLM-provider!"
+                "No LLM-providers were setup! Please setup at least one LLM-provider!"
             )
         logger.info(
-            f"The following judges are enabled for this instance: {', '.join(enabled_judges)}!"
+            f"The following LLM-providers are enabled for this instance: {', '.join(enabled_judges)}!"
         )
         logger.info(f"Loaded the following configuration:\n{self.config}")
 
