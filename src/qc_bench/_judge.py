@@ -1439,6 +1439,8 @@ class Judge:
     RuntimeError
         If an Ollama model identifier was provided with parameter ``ollama`` but a configuration
         was also provided via ``config`` (potential clash in model identifiers).
+    ValueError
+        If none of the LLM providers were setup.
 
     Examples
     --------
@@ -1493,11 +1495,6 @@ class Judge:
             self.__openai = OpenAI(api_key=_OpenAIModel._get_openai_api_key())
         else:
             self.__openai = None
-        # log openai
-        if self.__openai is None:
-            logger.info("OpenAI judge disabled for this instance!")
-        else:
-            logger.info("OpenAI judge enabled for this instance!")
         # anthropic
         if isinstance(anthropic, str):
             self.__anthropic = Anthropic(api_key=str(anthropic).strip())
@@ -1507,11 +1504,6 @@ class Judge:
             )
         else:
             self.__anthropic = None
-        # log anthropic
-        if self.__anthropic is None:
-            logger.info("Anthropic judge disabled for this instance!")
-        else:
-            logger.info("Anthropic judge enabled for this instance!")
         # google
         if isinstance(google, str):
             self.__google = Google(api_key=str(google).strip())
@@ -1519,11 +1511,6 @@ class Judge:
             self.__google = Google(api_key=_GoogleModel._get_gemini_api_key())
         else:
             self.__google = None
-        # log google
-        if self.__google is None:
-            logger.info("Google judge disabled for this instance!")
-        else:
-            logger.info("Google judge enabled for this instance!")
         # ollama
         if isinstance(ollama, str):
             self.__ollama = Ollama(host=self.config.ollama_host, headers={})
@@ -1531,12 +1518,26 @@ class Judge:
             self.__ollama = Ollama(host=self.config.ollama_host, headers={})
         else:
             self.__ollama = None
-        # log ollama
-        if self.__ollama is None:
-            logger.info("Ollama judge disabled for this instance!")
-        else:
-            logger.info("Ollama judge enabled for this instance!")
-        # log config
+        # log configuration
+        enabled_judges: list[str] = list()
+        if self.__openai is not None:
+            enabled_judges.append("OpenAI")
+        if self.__anthropic is not None:
+            enabled_judges.append("Anthropic")
+        if self.__google is not None:
+            enabled_judges.append("Google")
+        if self.__ollama is not None:
+            enabled_judges.append("Ollama")
+        if len(enabled_judges) == 0:
+            logger.error(
+                "No judges/LLMs were defined! Please setup at least one judge/LLM-provider!"
+            )
+            raise ValueError(
+                "No judges/LLMs were defined! Please setup at least one judge/LLM-provider!"
+            )
+        logger.info(
+            f"The following judges are enabled for this instance: {', '.join(enabled_judges)}!"
+        )
         logger.info(f"Loaded the following configuration:\n{self.config}")
 
     def score(self, src: str, mt: str, src_lang: str, mt_lang: str) -> JudgeResult:
