@@ -3,10 +3,13 @@
 # 2026 (c) Micha Birklbauer
 # https://github.com/michabirklbauer/
 
+from __future__ import annotations
+
 import os
 import time
 import json
 import logging
+import tomllib
 from openai import OpenAI
 from anthropic import Anthropic
 from google.genai import Client as Google
@@ -18,7 +21,7 @@ from ollama import ResponseError as OllamaResponseError
 from ollama import pull as pull_ollama_model
 from pydantic import BaseModel, Field, ConfigDict, computed_field
 
-from typing import Optional, Annotated, Any, Literal
+from typing import Optional, Annotated, Any, Literal, override
 
 from ._translation import QualityEstimation
 from ._constants import MAX_RETRY, MAX_OUTPUT_TOKENS, RETRY_WAIT_TIME, SEEDS
@@ -116,6 +119,209 @@ class JudgeResult(BaseModel):
     """
 
 
+class JudgeConfig(BaseModel):
+    r"""Configuration for all LLM-providers."""
+
+    openai_model: Annotated[
+        str,
+        Field(frozen=True, description="The OpenAI model identifier."),
+    ] = OPENAI_MODEL
+    r"""The OpenAI model identifier. See
+        `here <https://developers.openai.com/api/docs/models>`_.
+    """
+    openai_thinking_level: Annotated[
+        Literal["none", "minimal", "low", "medium", "high", "xhigh", "max"],
+        Field(frozen=True, description="The OpenAI thinking level of the model."),
+    ] = OPENAI_THINKING_LEVEL
+    r"""The OpenAI thinking level of the model. See
+        `here <https://developers.openai.com/api/docs/guides/reasoning?api-mode=responses>`_ and
+        `here <https://developers.openai.com/api/reference/resources/$shared#(resource)%20%24shared%20%3E%20(model)%20reasoning_effort%20%3E%20(schema)>`_.
+    """
+    anthropic_model: Annotated[
+        str,
+        Field(frozen=True, description="The Anthropic model identifier."),
+    ] = ANTHROPIC_MODEL
+    r"""The Anthropic model identifier. See
+        `here <https://platform.claude.com/docs/en/models/overview>`_.
+    """
+    anthropic_thinking_level: Annotated[
+        Literal["low", "medium", "high", "xhigh", "max"],
+        Field(frozen=True, description="The Anthropic thinking level of the model."),
+    ] = ANTHROPIC_THINKING_LEVEL
+    r"""The Anthropic thinking level of the model. See
+        `here <https://platform.claude.com/docs/en/build-with-claude/effort>`_.
+    """
+    google_model: Annotated[
+        str,
+        Field(frozen=True, description="The Google model identifier."),
+    ] = GOOGLE_MODEL
+    r"""The Google model identifier. See
+        `here <https://ai.google.dev/gemini-api/docs/models>`_.
+    """
+    google_thinking_level: Annotated[
+        str,
+        Field(frozen=True, description="The Google thinking level of the model."),
+    ] = GOOGLE_THINKING_LEVEL
+    r"""The Google thinking level of the model. See
+        `here <https://ai.google.dev/gemini-api/docs/gemini-3?hl=de#thinking_level>`_ and
+        `here <https://ai.google.dev/gemini-api/docs/thinking#thinking-levels>`_.
+    """
+    ollama_host: Annotated[
+        str,
+        Field(frozen=True, description="The Ollama host address."),
+    ] = OLLAMA_HOST
+    r"""The Ollama host address (optionally including port)."""
+    ollama_model: Annotated[
+        str,
+        Field(frozen=True, description="The Ollama model to use."),
+    ] = OLLAMA_DEFAULT_MODEL
+    r"""The Ollama model to use, given as a valid model identifier. See
+        `here <https://ollama.com/search>`_.
+    """
+    ollama_keep_alive: Annotated[
+        int | str,
+        Field(frozen=True, description="The Ollama model in-memory duration."),
+    ] = OLLAMA_KEEP_ALIVE
+    r"""The Ollama model in-memory duration."""
+    max_output_tokens: Annotated[
+        int,
+        Field(frozen=True, description="Maximum number of output tokens to generate."),
+    ] = MAX_OUTPUT_TOKENS
+    r"""Maximum number of output tokens to generate."""
+    max_retry: Annotated[
+        int,
+        Field(frozen=True, description="The maximum number of request retries."),
+    ] = MAX_RETRY
+    r"""The maximum number of request retries for failed API calls."""
+    retry_wait_time: Annotated[
+        float,
+        Field(
+            frozen=True,
+            description="Time in seconds to wait between failed API requests.",
+        ),
+    ] = RETRY_WAIT_TIME
+    r"""Time in seconds to wait between failed API requests."""
+    seeds: Annotated[
+        list[int],
+        Field(frozen=True, description="Random seeds to use for generation."),
+    ] = SEEDS
+    r"""Random seeds to use for generation.
+        Length must be at least``max_retry + 1``.
+    """
+    model_config = ConfigDict(
+        validate_assignment=True, strict=True, str_strip_whitespace=True
+    )
+    r"""
+    Pydantic configuration for the underlying validation model.
+    """
+
+    @override
+    def model_post_init(self, context: Any = None) -> None:
+        r"""
+        Performs extra validation and post init functions.
+
+        Warnings
+        --------
+        This method should not be called manually!
+        """
+        if len(self.seeds) < self.max_retry + 1:
+            raise ValueError(
+                f"Parameter 'seeds' must at least length {self.max_retry + 1}!"
+            )
+
+    @classmethod
+    def model_validate_toml(cls, toml_path: str) -> JudgeConfig:
+        parsed_toml = None
+        with open(toml_path, "rb") as f:
+            parsed_toml = tomllib.load(f)
+            f.close()
+        # this is probably impossible?
+        if parsed_toml is None:
+            logger.error(f"Could not read {toml_path}. Is it in valid TOML format?")
+            raise RuntimeError(
+                f"Could not read {toml_path}. Is it in valid TOML format?"
+            )
+        openai_model = OPENAI_MODEL
+        openai_thinking_level = OPENAI_THINKING_LEVEL
+        anthropic_model = ANTHROPIC_MODEL
+        anthropic_thinking_level = ANTHROPIC_THINKING_LEVEL
+        google_model = GOOGLE_MODEL
+        google_thinking_level = GOOGLE_THINKING_LEVEL
+        ollama_host = OLLAMA_HOST
+        ollama_model = OLLAMA_DEFAULT_MODEL
+        ollama_keep_alive = OLLAMA_KEEP_ALIVE
+        max_output_tokens = MAX_OUTPUT_TOKENS
+        max_retry = MAX_RETRY
+        retry_wait_time = RETRY_WAIT_TIME
+        seeds = SEEDS
+        if "OPENAI" in parsed_toml:
+            if "openai_model" in parsed_toml["OPENAI"]:
+                openai_model = parsed_toml["OPENAI"]["openai_model"]
+            if "openai_thinking_level" in parsed_toml["OPENAI"]:
+                openai_thinking_level = parsed_toml["OPENAI"]["openai_thinking_level"]
+        if "ANTHROPIC" in parsed_toml:
+            if "anthropic_model" in parsed_toml["ANTHROPIC"]:
+                anthropic_model = parsed_toml["ANTHROPIC"]["anthropic_model"]
+            if "anthropic_thinking_level" in parsed_toml["ANTHROPIC"]:
+                anthropic_thinking_level = parsed_toml["ANTHROPIC"]["anthropic_thinking_level"]  # fmt: skip
+        if "GOOGLE" in parsed_toml:
+            if "google_model" in parsed_toml["GOOGLE"]:
+                google_model = parsed_toml["GOOGLE"]["google_model"]
+            if "google_thinking_level" in parsed_toml["GOOGLE"]:
+                google_thinking_level = parsed_toml["GOOGLE"]["google_thinking_level"]
+        if "OLLAMA" in parsed_toml:
+            if "ollama_host" in parsed_toml["OLLAMA"]:
+                ollama_host = parsed_toml["OLLAMA"]["ollama_host"]
+            if "ollama_model" in parsed_toml["OLLAMA"]:
+                ollama_model = parsed_toml["OLLAMA"]["ollama_model"]
+            if "ollama_keep_alive" in parsed_toml["OLLAMA"]:
+                ollama_keep_alive = parsed_toml["OLLAMA"]["ollama_keep_alive"]
+        if "GENERAL" in parsed_toml:
+            if "max_output_tokens" in parsed_toml["GENERAL"]:
+                max_output_tokens = parsed_toml["GENERAL"]["max_output_tokens"]
+            if "max_retry" in parsed_toml["GENERAL"]:
+                max_retry = parsed_toml["GENERAL"]["max_retry"]
+            if "retry_wait_time" in parsed_toml["GENERAL"]:
+                retry_wait_time = parsed_toml["GENERAL"]["retry_wait_time"]
+            if "seeds" in parsed_toml["GENERAL"]:
+                seeds = parsed_toml["GENERAL"]["seeds"]
+        return JudgeConfig(
+            openai_model=openai_model,
+            openai_thinking_level=openai_thinking_level,
+            anthropic_model=anthropic_model,
+            anthropic_thinking_level=anthropic_thinking_level,
+            google_model=google_model,
+            google_thinking_level=google_thinking_level,
+            ollama_host=ollama_host,
+            ollama_model=ollama_model,
+            ollama_keep_alive=ollama_keep_alive,
+            max_output_tokens=max_output_tokens,
+            max_retry=max_retry,
+            retry_wait_time=retry_wait_time,
+            seeds=seeds,
+        )
+
+    @override
+    def __str__(self) -> str:
+        return (
+            "-------------------- JudgeConfig --------------------\n"
+            f"OpenAI Model:               {self.openai_model}\n"
+            f"OpenAI Thinking Level:      {self.openai_thinking_level}\n"
+            f"Anthropic Model:            {self.anthropic_model}\n"
+            f"Anthropic Thinking Level:   {self.anthropic_thinking_level}\n"
+            f"Google Model:               {self.google_model}\n"
+            f"Google Thinking Level:      {self.google_thinking_level}\n"
+            f"Ollama Host:                {self.ollama_host}\n"
+            f"Ollama Model:               {self.ollama_model}\n"
+            f"Ollama Keep Alive Duration: {self.ollama_keep_alive}\n"
+            f"Maximum Output Tokens:      {self.max_output_tokens}\n"
+            f"Maximum Retries:            {self.max_retry}\n"
+            f"Retry Waiting Time:         {self.retry_wait_time}\n"
+            f"Seeds:                      {', '.join([str(seed) for seed in self.seeds])}\n"
+            "-----------------------------------------------------"
+        )
+
+
 class _OpenAIModel:
     @staticmethod
     def _get_openai_api_key() -> str:
@@ -173,6 +379,7 @@ class _OpenAIModel:
     @staticmethod
     def _get_openai_response(
         client: Optional[OpenAI],
+        config: JudgeConfig,
         src: str,
         mt: str,
         src_lang: str,
@@ -190,24 +397,25 @@ class _OpenAIModel:
         try:
             # https://developers.openai.com/api/docs/guides/structured-outputs/
             response = client.responses.parse(
-                model=OPENAI_MODEL,
+                model=config.openai_model,
                 input=[
                     {"role": "system", "content": system_instruction},
                     {"role": "user", "content": user_instruction},
                 ],
                 # # https://developers.openai.com/api/docs/guides/reasoning?api-mode=responses
-                reasoning={"effort": OPENAI_THINKING_LEVEL},
+                reasoning={"effort": config.openai_thinking_level},
                 text_format=QualityEstimation,
-                max_output_tokens=MAX_OUTPUT_TOKENS,
+                max_output_tokens=config.max_output_tokens,
             )
         except Exception as e:
             logger.warning(
                 f"Failed getting response at retry {retry} from OpenAI API due to: {e}"
             )
-            if retry < MAX_RETRY:
-                time.sleep(RETRY_WAIT_TIME)
+            if retry < config.max_retry:
+                time.sleep(config.retry_wait_time)
                 return _OpenAIModel._get_openai_response(
                     client,
+                    config=config,
                     src=src,
                     mt=mt,
                     src_lang=src_lang,
@@ -215,22 +423,23 @@ class _OpenAIModel:
                     retry=retry + 1,
                 )
             logger.error(
-                f"Failed getting response at retry {retry} > MAX_RETRY from OpenAI API due to: {e}"
+                f"Failed getting response at retry {retry} > MAX_RETRY ({config.max_retry}) from OpenAI API due to: {e}"
             )
             return JudgeModelResult(
-                model=OPENAI_MODEL,
+                model=config.openai_model,
                 prompt=prompt,
                 status="error",
-                parameters={"effort": OPENAI_THINKING_LEVEL},
+                parameters={"effort": config.openai_thinking_level},
                 response=None,
                 quality_estimation=None,
                 quality_estimation_dict=None,
             )
 
         if response is None:
-            if retry < MAX_RETRY:
+            if retry < config.max_retry:
                 return _OpenAIModel._get_openai_response(
                     client,
+                    config=config,
                     src=src,
                     mt=mt,
                     src_lang=src_lang,
@@ -238,22 +447,23 @@ class _OpenAIModel:
                     retry=retry + 1,
                 )
             logger.error(
-                f"Failed getting a valid response at retry {retry} > MAX_RETRY."
+                f"Failed getting a valid response at retry {retry} > MAX_RETRY ({config.max_retry})."
             )
             return JudgeModelResult(
-                model=OPENAI_MODEL,
+                model=config.openai_model,
                 prompt=prompt,
                 status="error",
-                parameters={"effort": OPENAI_THINKING_LEVEL},
+                parameters={"effort": config.openai_thinking_level},
                 response=None,
                 quality_estimation=None,
                 quality_estimation_dict=None,
             )
 
         if response.output_parsed is None:
-            if retry < MAX_RETRY:
+            if retry < config.max_retry:
                 return _OpenAIModel._get_openai_response(
                     client,
+                    config=config,
                     src=src,
                     mt=mt,
                     src_lang=src_lang,
@@ -261,13 +471,13 @@ class _OpenAIModel:
                     retry=retry + 1,
                 )
             logger.error(
-                f"Failed getting a valid response at retry {retry} > MAX_RETRY."
+                f"Failed getting a valid response at retry {retry} > MAX_RETRY ({config.max_retry})."
             )
             return JudgeModelResult(
-                model=OPENAI_MODEL,
+                model=config.openai_model,
                 prompt=prompt,
                 status="error",
-                parameters={"effort": OPENAI_THINKING_LEVEL},
+                parameters={"effort": config.openai_thinking_level},
                 response=str(response),
                 quality_estimation=None,
                 quality_estimation_dict=None,
@@ -279,18 +489,19 @@ class _OpenAIModel:
                 f"Successfully got a valid response after retry {retry} for one query."
             )
             return JudgeModelResult(
-                model=OPENAI_MODEL,
+                model=config.openai_model,
                 prompt=prompt,
                 status="ok",
-                parameters={"effort": OPENAI_THINKING_LEVEL},
+                parameters={"effort": config.openai_thinking_level},
                 response=str(response),
                 quality_estimation=response.output_parsed,
                 quality_estimation_dict=r,
             )
         except Exception as _e:
-            if retry < MAX_RETRY:
+            if retry < config.max_retry:
                 return _OpenAIModel._get_openai_response(
                     client,
+                    config=config,
                     src=src,
                     mt=mt,
                     src_lang=src_lang,
@@ -298,23 +509,25 @@ class _OpenAIModel:
                     retry=retry + 1,
                 )
             logger.error(
-                f"Failed getting a valid response at retry {retry} > MAX_RETRY."
+                f"Failed getting a valid response at retry {retry} > MAX_RETRY ({config.max_retry})."
             )
             return JudgeModelResult(
-                model=OPENAI_MODEL,
+                model=config.openai_model,
                 prompt=prompt,
                 status="error",
-                parameters={"effort": OPENAI_THINKING_LEVEL},
+                parameters={"effort": config.openai_thinking_level},
                 response=str(response),
                 quality_estimation=None,
                 quality_estimation_dict=None,
             )
-        logger.error(f"Failed getting a valid response at retry {retry} > MAX_RETRY.")
+        logger.error(
+            f"Failed getting a valid response at retry {retry} > MAX_RETRY ({config.max_retry})."
+        )
         return JudgeModelResult(
-            model=OPENAI_MODEL,
+            model=config.openai_model,
             prompt=prompt,
             status="error",
-            parameters={"effort": OPENAI_THINKING_LEVEL},
+            parameters={"effort": config.openai_thinking_level},
             response=str(response) if response is not None else None,
             quality_estimation=None,
             quality_estimation_dict=None,
@@ -378,6 +591,7 @@ class _AnthropicModel:
     @staticmethod
     def _get_anthropic_response(
         client: Optional[Anthropic],
+        config: JudgeConfig,
         src: str,
         mt: str,
         src_lang: str,
@@ -395,25 +609,26 @@ class _AnthropicModel:
         try:
             # https://platform.claude.com/docs/en/build-with-claude/structured-outputs#quick-start
             response = client.messages.parse(
-                model=ANTHROPIC_MODEL,
+                model=config.anthropic_model,
                 # https://platform.claude.com/docs/en/build-with-claude/working-with-messages#system-role-in-messages
                 system=system_instruction,
                 messages=[
                     {"role": "user", "content": user_instruction},
                 ],
                 # https://platform.claude.com/docs/en/build-with-claude/effort
-                output_config={"effort": ANTHROPIC_THINKING_LEVEL},
+                output_config={"effort": config.anthropic_thinking_level},
                 output_format=QualityEstimation,
-                max_tokens=MAX_OUTPUT_TOKENS,
+                max_tokens=config.max_output_tokens,
             )
         except Exception as e:
             logger.warning(
                 f"Failed getting response at retry {retry} from Anthropic API due to: {e}"
             )
-            if retry < MAX_RETRY:
-                time.sleep(RETRY_WAIT_TIME)
+            if retry < config.max_retry:
+                time.sleep(config.retry_wait_time)
                 return _AnthropicModel._get_anthropic_response(
                     client,
+                    config=config,
                     src=src,
                     mt=mt,
                     src_lang=src_lang,
@@ -421,22 +636,23 @@ class _AnthropicModel:
                     retry=retry + 1,
                 )
             logger.error(
-                f"Failed getting response at retry {retry} > MAX_RETRY from Anthropic API due to: {e}"
+                f"Failed getting response at retry {retry} > MAX_RETRY ({config.max_retry}) from Anthropic API due to: {e}"
             )
             return JudgeModelResult(
-                model=ANTHROPIC_MODEL,
+                model=config.anthropic_model,
                 prompt=prompt,
                 status="error",
-                parameters={"effort": ANTHROPIC_THINKING_LEVEL},
+                parameters={"effort": config.anthropic_thinking_level},
                 response=None,
                 quality_estimation=None,
                 quality_estimation_dict=None,
             )
 
         if response is None:
-            if retry < MAX_RETRY:
+            if retry < config.max_retry:
                 return _AnthropicModel._get_anthropic_response(
                     client,
+                    config=config,
                     src=src,
                     mt=mt,
                     src_lang=src_lang,
@@ -444,22 +660,23 @@ class _AnthropicModel:
                     retry=retry + 1,
                 )
             logger.error(
-                f"Failed getting a valid response at retry {retry} > MAX_RETRY."
+                f"Failed getting a valid response at retry {retry} > MAX_RETRY ({config.max_retry})."
             )
             return JudgeModelResult(
-                model=ANTHROPIC_MODEL,
+                model=config.anthropic_model,
                 prompt=prompt,
                 status="error",
-                parameters={"effort": ANTHROPIC_THINKING_LEVEL},
+                parameters={"effort": config.anthropic_thinking_level},
                 response=None,
                 quality_estimation=None,
                 quality_estimation_dict=None,
             )
 
         if response.parsed_output is None:
-            if retry < MAX_RETRY:
+            if retry < config.max_retry:
                 return _AnthropicModel._get_anthropic_response(
                     client,
+                    config=config,
                     src=src,
                     mt=mt,
                     src_lang=src_lang,
@@ -467,13 +684,13 @@ class _AnthropicModel:
                     retry=retry + 1,
                 )
             logger.error(
-                f"Failed getting a valid response at retry {retry} > MAX_RETRY."
+                f"Failed getting a valid response at retry {retry} > MAX_RETRY ({config.max_retry})."
             )
             return JudgeModelResult(
-                model=ANTHROPIC_MODEL,
+                model=config.anthropic_model,
                 prompt=prompt,
                 status="error",
-                parameters={"effort": ANTHROPIC_THINKING_LEVEL},
+                parameters={"effort": config.anthropic_thinking_level},
                 response=str(response),
                 quality_estimation=None,
                 quality_estimation_dict=None,
@@ -485,18 +702,19 @@ class _AnthropicModel:
                 f"Successfully got a valid response after retry {retry} for one query."
             )
             return JudgeModelResult(
-                model=ANTHROPIC_MODEL,
+                model=config.anthropic_model,
                 prompt=prompt,
                 status="ok",
-                parameters={"effort": ANTHROPIC_THINKING_LEVEL},
+                parameters={"effort": config.anthropic_thinking_level},
                 response=str(response),
                 quality_estimation=response.parsed_output,
                 quality_estimation_dict=r,
             )
         except Exception as _e:
-            if retry < MAX_RETRY:
+            if retry < config.max_retry:
                 return _AnthropicModel._get_anthropic_response(
                     client,
+                    config=config,
                     src=src,
                     mt=mt,
                     src_lang=src_lang,
@@ -504,23 +722,25 @@ class _AnthropicModel:
                     retry=retry + 1,
                 )
             logger.error(
-                f"Failed getting a valid response at retry {retry} > MAX_RETRY."
+                f"Failed getting a valid response at retry {retry} > MAX_RETRY ({config.max_retry})."
             )
             return JudgeModelResult(
-                model=ANTHROPIC_MODEL,
+                model=config.anthropic_model,
                 prompt=prompt,
                 status="error",
-                parameters={"effort": ANTHROPIC_THINKING_LEVEL},
+                parameters={"effort": config.anthropic_thinking_level},
                 response=str(response),
                 quality_estimation=None,
                 quality_estimation_dict=None,
             )
-        logger.error(f"Failed getting a valid response at retry {retry} > MAX_RETRY.")
+        logger.error(
+            f"Failed getting a valid response at retry {retry} > MAX_RETRY ({config.max_retry})."
+        )
         return JudgeModelResult(
-            model=ANTHROPIC_MODEL,
+            model=config.anthropic_model,
             prompt=prompt,
             status="error",
-            parameters={"effort": ANTHROPIC_THINKING_LEVEL},
+            parameters={"effort": config.anthropic_thinking_level},
             response=str(response) if response is not None else None,
             quality_estimation=None,
             quality_estimation_dict=None,
@@ -578,6 +798,7 @@ class _GoogleModel:
     @staticmethod
     def _get_gemini_response(
         client: Optional[Google],
+        config: JudgeConfig,
         src: str,
         mt: str,
         src_lang: str,
@@ -592,29 +813,30 @@ class _GoogleModel:
         response = None
         try:
             response = client.models.generate_content(
-                model=GOOGLE_MODEL,
+                model=config.google_model,
                 contents=prompt,
                 config=GoogleTypes.GenerateContentConfig(
                     # https://ai.google.dev/gemini-api/docs/gemini-3?hl=de#thinking_level
                     # https://ai.google.dev/gemini-api/docs/thinking#thinking-levels
                     thinking_config=GoogleTypes.ThinkingConfig(
-                        thinking_level=GOOGLE_THINKING_LEVEL
+                        thinking_level=config.google_thinking_level
                     ),
                     # might be worth checking out: https://ai.google.dev/gemini-api/docs/gemini-3?hl=de#structured_outputs_with_tools
                     response_mime_type="application/json",
                     response_json_schema=QualityEstimation.model_json_schema(),
-                    max_output_tokens=MAX_OUTPUT_TOKENS,
-                    seed=SEEDS[retry],
+                    max_output_tokens=config.max_output_tokens,
+                    seed=config.seeds[retry],
                 ),
             )
         except Exception as e:
             logger.warning(
                 f"Failed getting response at retry {retry} from Gemini API due to: {e}"
             )
-            if retry < MAX_RETRY:
-                time.sleep(RETRY_WAIT_TIME)
+            if retry < config.max_retry:
+                time.sleep(config.retry_wait_time)
                 return _GoogleModel._get_gemini_response(
                     client,
+                    config=config,
                     src=src,
                     mt=mt,
                     src_lang=src_lang,
@@ -622,23 +844,24 @@ class _GoogleModel:
                     retry=retry + 1,
                 )
             logger.error(
-                f"Failed getting a valid response at retry {retry} > MAX_RETRY."
+                f"Failed getting a valid response at retry {retry} > MAX_RETRY ({config.max_retry})."
             )
             return JudgeModelResult(
-                model=GOOGLE_MODEL,
+                model=config.google_model,
                 prompt=prompt,
                 status="error",
-                parameters={"thinking_config": GOOGLE_THINKING_LEVEL},
+                parameters={"thinking_config": config.google_thinking_level},
                 response=None,
                 quality_estimation=None,
                 quality_estimation_dict=None,
             )
 
         if response is None:
-            if retry < MAX_RETRY:
-                time.sleep(RETRY_WAIT_TIME)
+            if retry < config.max_retry:
+                time.sleep(config.retry_wait_time)
                 return _GoogleModel._get_gemini_response(
                     client,
+                    config=config,
                     src=src,
                     mt=mt,
                     src_lang=src_lang,
@@ -646,23 +869,24 @@ class _GoogleModel:
                     retry=retry + 1,
                 )
             logger.error(
-                f"Failed getting a valid response at retry {retry} > MAX_RETRY."
+                f"Failed getting a valid response at retry {retry} > MAX_RETRY ({config.max_retry})."
             )
             return JudgeModelResult(
-                model=GOOGLE_MODEL,
+                model=config.google_model,
                 prompt=prompt,
                 status="error",
-                parameters={"thinking_config": GOOGLE_THINKING_LEVEL},
+                parameters={"thinking_config": config.google_thinking_level},
                 response=None,
                 quality_estimation=None,
                 quality_estimation_dict=None,
             )
 
         if response.text is None:
-            if retry < MAX_RETRY:
-                time.sleep(RETRY_WAIT_TIME)
+            if retry < config.max_retry:
+                time.sleep(config.retry_wait_time)
                 return _GoogleModel._get_gemini_response(
                     client,
+                    config=config,
                     src=src,
                     mt=mt,
                     src_lang=src_lang,
@@ -670,13 +894,13 @@ class _GoogleModel:
                     retry=retry + 1,
                 )
             logger.error(
-                f"Failed getting a valid response at retry {retry} > MAX_RETRY."
+                f"Failed getting a valid response at retry {retry} > MAX_RETRY ({config.max_retry})."
             )
             return JudgeModelResult(
-                model=GOOGLE_MODEL,
+                model=config.google_model,
                 prompt=prompt,
                 status="error",
-                parameters={"thinking_config": GOOGLE_THINKING_LEVEL},
+                parameters={"thinking_config": config.google_thinking_level},
                 response=str(response),
                 quality_estimation=None,
                 quality_estimation_dict=None,
@@ -689,19 +913,20 @@ class _GoogleModel:
                 f"Successfully got a valid response after retry {retry} for one query."
             )
             return JudgeModelResult(
-                model=GOOGLE_MODEL,
+                model=config.google_model,
                 prompt=prompt,
                 status="ok",
-                parameters={"thinking_config": GOOGLE_THINKING_LEVEL},
+                parameters={"thinking_config": config.google_thinking_level},
                 response=str(response),
                 quality_estimation=qe,
                 quality_estimation_dict=r,
             )
         except Exception as _e:
             try:
-                if retry < MAX_RETRY:
+                if retry < config.max_retry:
                     return _GoogleModel._get_gemini_response(
                         client,
+                        config=config,
                         src=src,
                         mt=mt,
                         src_lang=src_lang,
@@ -710,21 +935,22 @@ class _GoogleModel:
                     )
                 r = json.loads(response.text)
                 logger.error(
-                    f"Failed getting a valid response at retry {retry} > MAX_RETRY."
+                    f"Failed getting a valid response at retry {retry} > MAX_RETRY ({config.max_retry})."
                 )
                 return JudgeModelResult(
-                    model=GOOGLE_MODEL,
+                    model=config.google_model,
                     prompt=prompt,
                     status="error",
-                    parameters={"thinking_config": GOOGLE_THINKING_LEVEL},
+                    parameters={"thinking_config": config.google_thinking_level},
                     response=str(response),
                     quality_estimation=None,
                     quality_estimation_dict=r,
                 )
             except Exception as _e:
-                if retry < MAX_RETRY:
+                if retry < config.max_retry:
                     return _GoogleModel._get_gemini_response(
                         client,
+                        config=config,
                         src=src,
                         mt=mt,
                         src_lang=src_lang,
@@ -732,23 +958,25 @@ class _GoogleModel:
                         retry=retry + 1,
                     )
                 logger.error(
-                    f"Failed getting a valid response at retry {retry} > MAX_RETRY."
+                    f"Failed getting a valid response at retry {retry} > MAX_RETRY ({config.max_retry})."
                 )
                 return JudgeModelResult(
-                    model=GOOGLE_MODEL,
+                    model=config.google_model,
                     prompt=prompt,
                     status="error",
-                    parameters={"thinking_config": GOOGLE_THINKING_LEVEL},
+                    parameters={"thinking_config": config.google_thinking_level},
                     response=str(response),
                     quality_estimation=None,
                     quality_estimation_dict=None,
                 )
-        logger.error(f"Failed getting a valid response at retry {retry} > MAX_RETRY.")
+        logger.error(
+            f"Failed getting a valid response at retry {retry} > MAX_RETRY ({config.max_retry})."
+        )
         return JudgeModelResult(
-            model=GOOGLE_MODEL,
+            model=config.google_model,
             prompt=prompt,
             status="error",
-            parameters={"thinking_config": GOOGLE_THINKING_LEVEL},
+            parameters={"thinking_config": config.google_thinking_level},
             response=str(response) if response is not None else None,
             quality_estimation=None,
             quality_estimation_dict=None,
@@ -825,9 +1053,7 @@ class _OllamaModel:
     @staticmethod
     def _get_ollama_response(
         client: Optional[Ollama],
-        model: str,
-        num_predict: int,
-        keep_alive: int | str,
+        config: JudgeConfig,
         src: str,
         mt: str,
         src_lang: str,
@@ -844,26 +1070,27 @@ class _OllamaModel:
         prompt: str = f"{system_instruction}\n{user_instruction}"
         try:
             response = client.chat(
-                model=model,
+                model=config.ollama_model,
                 messages=[
                     {"role": "system", "content": system_instruction},
                     {"role": "user", "content": user_instruction},
                 ],
                 format=QualityEstimation.model_json_schema(),
-                keep_alive=keep_alive,
-                options={"num_predict": num_predict, "seed": SEEDS[retry]},
+                keep_alive=config.ollama_keep_alive,
+                options={
+                    "num_predict": config.max_output_tokens,
+                    "seed": config.seeds[retry],
+                },
             )
         except OllamaResponseError as e:
             logger.error(f"Error in response: {e.error}")
             # if no model, retrive model and try again
             if e.status_code == 404:
-                pull_ollama_model(model)
-            if retry < MAX_RETRY:
+                pull_ollama_model(config.ollama_model)
+            if retry < config.max_retry:
                 return _OllamaModel._get_ollama_response(
                     client,
-                    model=model,
-                    num_predict=num_predict,
-                    keep_alive=keep_alive,
+                    config=config,
                     src=src,
                     mt=mt,
                     src_lang=src_lang,
@@ -873,9 +1100,7 @@ class _OllamaModel:
             # use fallback to generate API
             return _OllamaModel._get_ollama_response_fallback(
                 client,
-                model=model,
-                num_predict=num_predict,
-                keep_alive=keep_alive,
+                config=config,
                 src=src,
                 mt=mt,
                 src_lang=src_lang,
@@ -885,12 +1110,10 @@ class _OllamaModel:
             logger.error(f"Error in response: {e}")
 
         if response is None:
-            if retry < MAX_RETRY:
+            if retry < config.max_retry:
                 return _OllamaModel._get_ollama_response(
                     client,
-                    model=model,
-                    num_predict=num_predict,
-                    keep_alive=keep_alive,
+                    config=config,
                     src=src,
                     mt=mt,
                     src_lang=src_lang,
@@ -900,9 +1123,7 @@ class _OllamaModel:
             # use fallback to generate API
             return _OllamaModel._get_ollama_response_fallback(
                 client,
-                model=model,
-                num_predict=num_predict,
-                keep_alive=keep_alive,
+                config=config,
                 src=src,
                 mt=mt,
                 src_lang=src_lang,
@@ -910,12 +1131,10 @@ class _OllamaModel:
             )
 
         if response.message is None:
-            if retry < MAX_RETRY:
+            if retry < config.max_retry:
                 return _OllamaModel._get_ollama_response(
                     client,
-                    model=model,
-                    num_predict=num_predict,
-                    keep_alive=keep_alive,
+                    config=config,
                     src=src,
                     mt=mt,
                     src_lang=src_lang,
@@ -925,9 +1144,7 @@ class _OllamaModel:
             # use fallback to generate API
             return _OllamaModel._get_ollama_response_fallback(
                 client,
-                model=model,
-                num_predict=num_predict,
-                keep_alive=keep_alive,
+                config=config,
                 src=src,
                 mt=mt,
                 src_lang=src_lang,
@@ -935,12 +1152,10 @@ class _OllamaModel:
             )
 
         if response.message.content is None:
-            if retry < MAX_RETRY:
+            if retry < config.max_retry:
                 return _OllamaModel._get_ollama_response(
                     client,
-                    model=model,
-                    num_predict=num_predict,
-                    keep_alive=keep_alive,
+                    config=config,
                     src=src,
                     mt=mt,
                     src_lang=src_lang,
@@ -950,9 +1165,7 @@ class _OllamaModel:
             # use fallback to generate API
             return _OllamaModel._get_ollama_response_fallback(
                 client,
-                model=model,
-                num_predict=num_predict,
-                keep_alive=keep_alive,
+                config=config,
                 src=src,
                 mt=mt,
                 src_lang=src_lang,
@@ -966,21 +1179,22 @@ class _OllamaModel:
                 f"Successfully got a valid response after retry {retry} for one query."
             )
             return JudgeModelResult(
-                model=model,
+                model=config.ollama_model,
                 prompt=prompt,
                 status="ok",
-                parameters={"num_predict": str(num_predict), "seed": str(SEEDS[retry])},
+                parameters={
+                    "num_predict": str(config.max_output_tokens),
+                    "seed": str(config.seeds[retry]),
+                },
                 response=str(response),
                 quality_estimation=qe,
                 quality_estimation_dict=r,
             )
         except Exception as _e:
-            if retry < MAX_RETRY:
+            if retry < config.max_retry:
                 return _OllamaModel._get_ollama_response(
                     client,
-                    model=model,
-                    num_predict=num_predict,
-                    keep_alive=keep_alive,
+                    config=config,
                     src=src,
                     mt=mt,
                     src_lang=src_lang,
@@ -990,9 +1204,7 @@ class _OllamaModel:
             # use fallback to generate API
             return _OllamaModel._get_ollama_response_fallback(
                 client,
-                model=model,
-                num_predict=num_predict,
-                keep_alive=keep_alive,
+                config=config,
                 src=src,
                 mt=mt,
                 src_lang=src_lang,
@@ -1001,9 +1213,7 @@ class _OllamaModel:
         # use fallback to generate API
         return _OllamaModel._get_ollama_response_fallback(
             client,
-            model=model,
-            num_predict=num_predict,
-            keep_alive=keep_alive,
+            config=config,
             src=src,
             mt=mt,
             src_lang=src_lang,
@@ -1013,9 +1223,7 @@ class _OllamaModel:
     @staticmethod
     def _get_ollama_response_fallback(
         client: Optional[Ollama],
-        model: str,
-        num_predict: int,
-        keep_alive: int | str,
+        config: JudgeConfig,
         src: str,
         mt: str,
         src_lang: str,
@@ -1030,23 +1238,24 @@ class _OllamaModel:
         )
         try:
             response = client.generate(
-                model=model,
+                model=config.ollama_model,
                 prompt=prompt,
                 format=QualityEstimation.model_json_schema(),
-                keep_alive=keep_alive,
-                options={"num_predict": num_predict, "seed": SEEDS[retry]},
+                keep_alive=config.ollama_keep_alive,
+                options={
+                    "num_predict": config.max_output_tokens,
+                    "seed": config.seeds[retry],
+                },
             )
         except OllamaResponseError as e:
             logger.error(f"Error in response: {e.error}")
             # if no model, retrive model and try again
             if e.status_code == 404:
-                pull_ollama_model(model)
-            if retry < MAX_RETRY:
+                pull_ollama_model(config.ollama_model)
+            if retry < config.max_retry:
                 return _OllamaModel._get_ollama_response_fallback(
                     client,
-                    model=model,
-                    num_predict=num_predict,
-                    keep_alive=keep_alive,
+                    config=config,
                     src=src,
                     mt=mt,
                     src_lang=src_lang,
@@ -1057,12 +1266,10 @@ class _OllamaModel:
             logger.error(f"Error in response: {e}")
 
         if response is None:
-            if retry < MAX_RETRY:
+            if retry < config.max_retry:
                 return _OllamaModel._get_ollama_response_fallback(
                     client,
-                    model=model,
-                    num_predict=num_predict,
-                    keep_alive=keep_alive,
+                    config=config,
                     src=src,
                     mt=mt,
                     src_lang=src_lang,
@@ -1070,25 +1277,26 @@ class _OllamaModel:
                     retry=retry + 1,
                 )
             logger.error(
-                f"Failed getting a valid response at retry {retry} > MAX_RETRY."
+                f"Failed getting a valid response at retry {retry} > MAX_RETRY ({config.max_retry})."
             )
             return JudgeModelResult(
-                model=model,
+                model=config.ollama_model,
                 prompt=prompt,
                 status="error",
-                parameters={"num_predict": str(num_predict), "seed": str(SEEDS[retry])},
+                parameters={
+                    "num_predict": str(config.max_output_tokens),
+                    "seed": str(config.seeds[retry]),
+                },
                 response=None,
                 quality_estimation=None,
                 quality_estimation_dict=None,
             )
 
         if response.response is None:
-            if retry < MAX_RETRY:
+            if retry < config.max_retry:
                 return _OllamaModel._get_ollama_response_fallback(
                     client,
-                    model=model,
-                    num_predict=num_predict,
-                    keep_alive=keep_alive,
+                    config=config,
                     src=src,
                     mt=mt,
                     src_lang=src_lang,
@@ -1096,13 +1304,16 @@ class _OllamaModel:
                     retry=retry + 1,
                 )
             logger.error(
-                f"Failed getting a valid response at retry {retry} > MAX_RETRY."
+                f"Failed getting a valid response at retry {retry} > MAX_RETRY ({config.max_retry})."
             )
             return JudgeModelResult(
-                model=model,
+                model=config.ollama_model,
                 prompt=prompt,
                 status="error",
-                parameters={"num_predict": str(num_predict), "seed": str(SEEDS[retry])},
+                parameters={
+                    "num_predict": str(config.max_output_tokens),
+                    "seed": str(config.seeds[retry]),
+                },
                 response=str(response),
                 quality_estimation=None,
                 quality_estimation_dict=None,
@@ -1115,22 +1326,23 @@ class _OllamaModel:
                 f"Successfully got a valid response after retry {retry} for one query."
             )
             return JudgeModelResult(
-                model=model,
+                model=config.ollama_model,
                 prompt=prompt,
                 status="ok",
-                parameters={"num_predict": str(num_predict), "seed": str(SEEDS[retry])},
+                parameters={
+                    "num_predict": str(config.max_output_tokens),
+                    "seed": str(config.seeds[retry]),
+                },
                 response=str(response),
                 quality_estimation=qe,
                 quality_estimation_dict=r,
             )
         except Exception as _e:
             try:
-                if retry < MAX_RETRY:
+                if retry < config.max_retry:
                     return _OllamaModel._get_ollama_response_fallback(
                         client,
-                        model=model,
-                        num_predict=num_predict,
-                        keep_alive=keep_alive,
+                        config=config,
                         src=src,
                         mt=mt,
                         src_lang=src_lang,
@@ -1139,27 +1351,25 @@ class _OllamaModel:
                     )
                 r = json.loads(response.response)
                 logger.error(
-                    f"Failed getting a valid response at retry {retry} > MAX_RETRY."
+                    f"Failed getting a valid response at retry {retry} > MAX_RETRY ({config.max_retry})."
                 )
                 return JudgeModelResult(
-                    model=model,
+                    model=config.ollama_model,
                     prompt=prompt,
                     status="error",
                     parameters={
-                        "num_predict": str(num_predict),
-                        "seed": str(SEEDS[retry]),
+                        "num_predict": str(config.max_output_tokens),
+                        "seed": str(config.seeds[retry]),
                     },
                     response=str(response),
                     quality_estimation=None,
                     quality_estimation_dict=r,
                 )
             except Exception as _e:
-                if retry < MAX_RETRY:
+                if retry < config.max_retry:
                     return _OllamaModel._get_ollama_response_fallback(
                         client,
-                        model=model,
-                        num_predict=num_predict,
-                        keep_alive=keep_alive,
+                        config=config,
                         src=src,
                         mt=mt,
                         src_lang=src_lang,
@@ -1167,26 +1377,31 @@ class _OllamaModel:
                         retry=retry + 1,
                     )
                 logger.error(
-                    f"Failed getting a valid response at retry {retry} > MAX_RETRY."
+                    f"Failed getting a valid response at retry {retry} > MAX_RETRY ({config.max_retry})."
                 )
                 return JudgeModelResult(
-                    model=model,
+                    model=config.ollama_model,
                     prompt=prompt,
                     status="error",
                     parameters={
-                        "num_predict": str(num_predict),
-                        "seed": str(SEEDS[retry]),
+                        "num_predict": str(config.max_output_tokens),
+                        "seed": str(config.seeds[retry]),
                     },
                     response=str(response),
                     quality_estimation=None,
                     quality_estimation_dict=None,
                 )
-        logger.error(f"Failed getting a valid response at retry {retry} > MAX_RETRY.")
+        logger.error(
+            f"Failed getting a valid response at retry {retry} > MAX_RETRY ({config.max_retry})."
+        )
         return JudgeModelResult(
-            model=model,
+            model=config.ollama_model,
             prompt=prompt,
             status="error",
-            parameters={"num_predict": str(num_predict), "seed": str(SEEDS[retry])},
+            parameters={
+                "num_predict": str(config.max_output_tokens),
+                "seed": str(config.seeds[retry]),
+            },
             response=str(response) if response is not None else None,
             quality_estimation=None,
             quality_estimation_dict=None,
@@ -1214,8 +1429,20 @@ class Judge:
         - If ``False`` the Google model will not be used as a judge.
     ollama : str, or bool, or None, default = None
         - If a string is given, an Ollama model identifier (e.g. ``gemma4:e4b``) is expected.
-        - If ``None`` or ``True`` the default Ollama model will be used.
+        - If ``None`` or ``True`` the Ollama model from the config file will be used.
         - If ``False`` the Ollama model will not be used as a judge.
+    config : JudgeConfig, str, or None, default = None
+        - The configuration for the LLMs/Judge.
+        - If a string is given, the path to a ``judge_config.toml`` file is expected.
+        - If ``None`` the default configuration will be loaded.
+
+    Raises
+    ------
+    RuntimeError
+        If an Ollama model identifier was provided with parameter ``ollama`` but a configuration
+        was also provided via ``config`` (potential clash in model identifiers).
+    ValueError
+        If none of the LLM providers were setup.
 
     Examples
     --------
@@ -1223,25 +1450,53 @@ class Judge:
     >>> judge = Judge(openai=False, anthropic=False, google=False, ollama="mistral:7b")
     """
 
-    __openai: OpenAI | None = None
-    __anthropic: Anthropic | None = None
-    __google: Google | None = None
-    __ollama: Ollama | None = None
-    ollama_model: str = OLLAMA_DEFAULT_MODEL
-    r"""The Ollama model identifier that is being used as a judge."""
-
     def __init__(
         self,
         openai: Optional[str | bool] = None,
         anthropic: Optional[str | bool] = None,
         google: Optional[str | bool] = None,
         ollama: Optional[str | bool] = None,
+        config: Optional[JudgeConfig | str] = None,
     ):
+        # config
+        if config is None:
+            if isinstance(ollama, str):
+                self.config = JudgeConfig(ollama_model=ollama)
+            else:
+                self.config = JudgeConfig()
+        elif isinstance(config, str):
+            self.config = JudgeConfig.model_validate_toml(config)
+            if isinstance(ollama, str):
+                logger.error(
+                    "Parameter 'ollama' seems to be a model identifier but an "
+                    "Ollama model is already given in the configuration! "
+                    "Please only use one of the two options!"
+                )
+                raise RuntimeError(
+                    "Parameter 'ollama' seems to be a model identifier but an "
+                    "Ollama model is already given in the configuration! "
+                    "Please only use one of the two options!"
+                )
+        else:
+            self.config = config
+            if isinstance(ollama, str):
+                logger.error(
+                    "Parameter 'ollama' seems to be a model identifier but an "
+                    "Ollama model is already given in the configuration! "
+                    "Please only use one of the two options!"
+                )
+                raise RuntimeError(
+                    "Parameter 'ollama' seems to be a model identifier but an "
+                    "Ollama model is already given in the configuration! "
+                    "Please only use one of the two options!"
+                )
         # openai
         if isinstance(openai, str):
             self.__openai = OpenAI(api_key=str(openai).strip())
         elif openai is None or openai:
             self.__openai = OpenAI(api_key=_OpenAIModel._get_openai_api_key())
+        else:
+            self.__openai = None
         # anthropic
         if isinstance(anthropic, str):
             self.__anthropic = Anthropic(api_key=str(anthropic).strip())
@@ -1249,18 +1504,43 @@ class Judge:
             self.__anthropic = Anthropic(
                 api_key=_AnthropicModel._get_anthropic_api_key()
             )
+        else:
+            self.__anthropic = None
         # google
         if isinstance(google, str):
             self.__google = Google(api_key=str(google).strip())
         elif google is None or google:
             self.__google = Google(api_key=_GoogleModel._get_gemini_api_key())
+        else:
+            self.__google = None
         # ollama
         if isinstance(ollama, str):
-            self.__ollama = Ollama(host=OLLAMA_HOST, headers={})
-            self.ollama_model = str(ollama).strip()
+            self.__ollama = Ollama(host=self.config.ollama_host, headers={})
         elif ollama is None or ollama:
-            self.__ollama = Ollama(host=OLLAMA_HOST, headers={})
-            self.ollama_model = OLLAMA_DEFAULT_MODEL
+            self.__ollama = Ollama(host=self.config.ollama_host, headers={})
+        else:
+            self.__ollama = None
+        # log configuration
+        enabled_judges: list[str] = list()
+        if self.__openai is not None:
+            enabled_judges.append("OpenAI")
+        if self.__anthropic is not None:
+            enabled_judges.append("Anthropic")
+        if self.__google is not None:
+            enabled_judges.append("Google")
+        if self.__ollama is not None:
+            enabled_judges.append("Ollama")
+        if len(enabled_judges) == 0:
+            logger.error(
+                "No LLM-providers were setup! Please setup at least one LLM-provider!"
+            )
+            raise ValueError(
+                "No LLM-providers were setup! Please setup at least one LLM-provider!"
+            )
+        logger.info(
+            f"The following LLM-providers are enabled for this instance: {', '.join(enabled_judges)}!"
+        )
+        logger.info(f"Loaded the following configuration:\n{self.config}")
 
     def score(self, src: str, mt: str, src_lang: str, mt_lang: str) -> JudgeResult:
         r"""Performs quality estimation using all setup LLMs for one translation.
@@ -1309,22 +1589,66 @@ class Judge:
         'mistral:7b'
         >>> jr.ollama.score
         0.95
+
+        >>> from qc_bench import Judge
+        >>> judge = Judge(
+        ...     openai=False,
+        ...     anthropic=False,
+        ...     google=False,
+        ...     ollama=True,
+        ...     config="config/judge_config.toml",
+        ... )
+        >>> jr = judge.score(
+        ...     src="The mitochondria is the powerhouse of the cell.",
+        ...     mt="Das Mitochondrium ist das Kraftwerk der Zelle.",
+        ...     src_lang="English",
+        ...     mt_lang="German",
+        ... )
+        >>> type(jr)
+        <class 'qc_bench._judge.JudgeResult'>
+        >>> jr.openai is None
+        True
+        >>> jr.anthropic is None
+        True
+        >>> jr.google is None
+        True
+        >>> jr.ollama is None
+        False
+        >>> type(jr.ollama)
+        <class 'qc_bench._judge.JudgeModelResult'>
+        >>> jr.ollama.model
+        'gemma4:e4b'
+        >>> jr.ollama.score
+        1.0
         """
         return JudgeResult(
             openai=_OpenAIModel._get_openai_response(
-                self.__openai, src=src, mt=mt, src_lang=src_lang, mt_lang=mt_lang
+                client=self.__openai,
+                config=self.config,
+                src=src,
+                mt=mt,
+                src_lang=src_lang,
+                mt_lang=mt_lang,
             ),
             anthropic=_AnthropicModel._get_anthropic_response(
-                self.__anthropic, src=src, mt=mt, src_lang=src_lang, mt_lang=mt_lang
+                client=self.__anthropic,
+                config=self.config,
+                src=src,
+                mt=mt,
+                src_lang=src_lang,
+                mt_lang=mt_lang,
             ),
             google=_GoogleModel._get_gemini_response(
-                self.__google, src=src, mt=mt, src_lang=src_lang, mt_lang=mt_lang
+                client=self.__google,
+                config=self.config,
+                src=src,
+                mt=mt,
+                src_lang=src_lang,
+                mt_lang=mt_lang,
             ),
             ollama=_OllamaModel._get_ollama_response(
-                self.__ollama,
-                model=self.ollama_model,
-                num_predict=MAX_OUTPUT_TOKENS,
-                keep_alive=OLLAMA_KEEP_ALIVE,
+                client=self.__ollama,
+                config=self.config,
                 src=src,
                 mt=mt,
                 src_lang=src_lang,
