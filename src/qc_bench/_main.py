@@ -117,7 +117,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             ollama=str(args.ollama_model).strip()
             if (args.ollama_model is not None and args.ollama)
             else args.ollama,
-            config=args.config if args.config is not None else None,
+            config=str(args.config).strip() if args.config is not None else None,
         )
 
         if args.ollama:
