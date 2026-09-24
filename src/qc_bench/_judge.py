@@ -120,7 +120,7 @@ class JudgeResult(BaseModel):
 
 
 class JudgeConfig(BaseModel):
-    r"""Configuration for all LLMs."""
+    r"""Configuration for all LLM-providers."""
 
     openai_model: Annotated[
         str,
