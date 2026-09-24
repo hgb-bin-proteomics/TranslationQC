@@ -235,7 +235,9 @@ class JudgeConfig(BaseModel):
         with open(toml_path, "rb") as f:
             parsed_toml = tomllib.load(f)
             f.close()
+        # this is probably impossible?
         if parsed_toml is None:
+            logger.error(f"Could not read {toml_path}. Is it in valid TOML format?")
             raise RuntimeError(
                 f"Could not read {toml_path}. Is it in valid TOML format?"
             )
