@@ -30,7 +30,7 @@ r"""Performs quality estimation for a list of translations using LLMs from OpenA
 .. code-block:: bash
    :caption: Example Usage
 
-    qc-bench -i data/test.csv -o data/test_annotated.csv --ollama
+    llm-judge -i data/test.csv -o data/test_annotated.csv --ollama
 
 .. code-block:: text
    :caption: Example Output
