@@ -30,7 +30,7 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     Examples
     --------
-    >>> from qc_bench import main
+    >>> from llm_judge import main
     >>> main(["-i", "data/test.csv", "-o", "data/test_annotated.csv", "--ollama"])
     """
 
