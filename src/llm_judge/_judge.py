@@ -232,6 +232,31 @@ class JudgeConfig(BaseModel):
 
     @classmethod
     def model_validate_toml(cls, toml_path: str) -> JudgeConfig:
+        r"""
+        Validate the given TOML data against the Pydantic model.
+
+        Parameters
+        ----------
+        toml_path : str
+            Path/name of the TOML file.
+
+        Returns
+        -------
+        JudgeConfig
+            The parsed JudgeConfig instance.
+
+        Raises
+        ------
+        RuntimeError
+            If the TOML file could not be read.
+
+        Examples
+        --------
+        >>> from llm_judge import JudgeConfig
+        >>> jc = JudgeConfig.model_validate_toml("config/judge_config.toml")
+        >>> jc.openai_model
+        'gpt-6-astra'
+        """
         parsed_toml = None
         with open(toml_path, "rb") as f:
             parsed_toml = tomllib.load(f)
