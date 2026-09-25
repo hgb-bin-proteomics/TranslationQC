@@ -8,7 +8,7 @@ r"""Performs quality estimation for a list of translations using LLMs from OpenA
 .. code-block:: text
    :caption: Usage Options
 
-    usage: qc-bench [-h] -i INPUT -o OUTPUT [-c CONFIG] [--openai] [--anthropic] [--google] [--ollama] [--ollama-model OLLAMA_MODEL] [--version]
+    usage: llm-judge [-h] -i INPUT -o OUTPUT [-c CONFIG] [--openai] [--anthropic] [--google] [--ollama] [--ollama-model OLLAMA_MODEL] [--version]
 
     Quality estimation for a list of translations using LLMs.
 

@@ -35,7 +35,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     """
 
     parser = argparse.ArgumentParser(
-        prog="qc-bench",
+        prog="llm-judge",
         description="Quality estimation for a list of translations using LLMs.",
         epilog="(c) Micha Birklbauer, 2026",
     )
