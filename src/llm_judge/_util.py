@@ -38,7 +38,7 @@ def annotate_csv(
 
     Examples
     --------
-    >>> from qc_bench import annotate_csv, Judge
+    >>> from llm_judge import annotate_csv, Judge
     >>> judge = Judge(openai=False, anthropic=False, google=False, ollama="mistral:7b")
     >>> pl_df, list_jr = annotate_csv("data/test.csv", judge=judge)
     Annotating data/test.csv...: 100%|█████████████████████████████████████████████████████████████████████████████████████| 1/1 [00:04<00:00,  4.96s/it]
@@ -55,7 +55,7 @@ def annotate_csv(
     >>> len(list_jr)
     1
     >>> type(list_jr[0])
-    <class 'qc_bench._judge.JudgeResult'>
+    <class 'llm_judge._judge.JudgeResult'>
     """
     # data collection
     score_openai: list[float] = list()
@@ -72,14 +72,18 @@ def annotate_csv(
     for row in tqdm(
         df.iter_rows(named=True), total=df.shape[0], desc=f"Annotating {input_file}..."
     ):
+        # get JudgeResult
         result = judge.score(
             src=str(row["src"]).strip(),
             mt=str(row["mt"]).strip(),
             src_lang=str(row["src_lang"]).strip(),
             mt_lang=str(row["mt_lang"]).strip(),
         )
+        # save a json-able object
         json_data.append(result.model_dump(mode="json"))
+        # save as JudgeResult
         raw_data.append(result)
+        # save scores
         score_openai.append(
             result.openai.score if result.openai is not None else float("nan")
         )
