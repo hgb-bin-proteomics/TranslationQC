@@ -43,7 +43,13 @@ integration into production environments.
   ```
 - Create a `Judge` instance with an LLM provider (here we use only [Ollama](https://ollama.com/)):
   ```python
-  judge = Judge(openai=False, anthropic=False, google=False, ollama=True, config="config/judge_config.toml")
+  judge = Judge(
+      openai=False,
+      anthropic=False,
+      google=False,
+      ollama=True,
+      config="config/judge_config.toml",
+  )
   ```
 - Rate one translation:
   ```python
