@@ -1628,7 +1628,7 @@ class Judge:
         -------
         JudgeResult
             The results of all LLMs in a result container, see ``JudgeResult``.
-        
+
         Raises
         ------
         RuntimeError
