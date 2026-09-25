@@ -1529,9 +1529,7 @@ class Judge:
         if isinstance(anthropic, str):
             self.__anthropic = Anthropic(api_key=str(anthropic).strip())
         elif anthropic is None or anthropic:
-            self.__anthropic = Anthropic(
-                api_key=_AnthropicModel._get_anthropic_api_key()
-            )
+            self.__anthropic = Anthropic(api_key=_AnthropicModel._get_anthropic_api_key())  # fmt: skip
         else:
             self.__anthropic = None
         # google
