@@ -56,6 +56,7 @@ def annotate_csv(
     1
     >>> type(list_jr[0])
     <class 'llm_judge._judge.JudgeResult'>
+    >>> judge.close()
     """
     # data collection
     score_openai: list[float] = list()
