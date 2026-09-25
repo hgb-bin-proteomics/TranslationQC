@@ -70,7 +70,7 @@ integration into production environments.
 
 ## Usage as a Standalone Tool
 
-- You can use `llm-judge` as a standalone by installing via pip (see [Installation](#Installation)).
+- You can use `llm-judge` as a standalone by installing via pip (see [Installation](#installation)).
 - Alternatively, you can run `llm-judge` via [uvx](https://docs.astral.sh/uv/reference/cli/#uv-tool-run):
   ```bash
   uvx --from git+https://github.com/hgb-bin-proteomics/llm-judge.git llm-judge -h
