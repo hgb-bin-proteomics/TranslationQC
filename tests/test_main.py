@@ -1,30 +1,33 @@
 #!/usr/bin/env python3
 
-# PKG NAME - TESTS
-# 2026 (c) YOUR NAME
-# https://github.com/username/
-# your.mail@mail.com
+import pytest
 
 
 def test1():
-    import os
-    from qc_bench import main
+    from llm_judge import main
 
-    # only run this locally
-    if os.path.isfile("env.json"):
-        assert (
-            main(
-                [
-                    "-i",
-                    "data/test.csv",
-                    "-o",
-                    "data/test_annotated.csv",
-                    "--openai",
-                    "--anthropic",
-                    "--google",
-                    "--ollama",
-                ]
-            )
-            == 0
+    with pytest.raises(SystemExit, match="0") as e:
+        _ = main(["-h"])
+
+    assert e.value.code == 0
+
+
+@pytest.mark.localonly
+def test2():
+    from llm_judge import main
+
+    assert (
+        main(
+            [
+                "-i",
+                "data/test.csv",
+                "-o",
+                "data/test_annotated.csv",
+                "--openai",
+                "--anthropic",
+                "--google",
+                "--ollama",
+            ]
         )
-    assert True
+        == 0
+    )
