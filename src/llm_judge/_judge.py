@@ -1472,8 +1472,10 @@ class Judge:
 
     Examples
     --------
-    >>> from qc_bench import Judge
+    >>> from llm_judge import Judge
     >>> judge = Judge(openai=False, anthropic=False, google=False, ollama="mistral:7b")
+    >>> # do something with the judge
+    >>> judge.close()
     """
 
     def __init__(
@@ -1661,7 +1663,7 @@ class Judge:
 
         Examples
         --------
-        >>> from qc_bench import Judge
+        >>> from llm_judge import Judge
         >>> judge = Judge(
         ...     openai=False, anthropic=False, google=False, ollama="mistral:7b"
         ... )
@@ -1672,7 +1674,7 @@ class Judge:
         ...     mt_lang="German",
         ... )
         >>> type(jr)
-        <class 'qc_bench._judge.JudgeResult'>
+        <class 'llm_judge._judge.JudgeResult'>
         >>> jr.openai is None
         True
         >>> jr.anthropic is None
@@ -1682,13 +1684,14 @@ class Judge:
         >>> jr.ollama is None
         False
         >>> type(jr.ollama)
-        <class 'qc_bench._judge.JudgeModelResult'>
+        <class 'llm_judge._judge.JudgeModelResult'>
         >>> jr.ollama.model
         'mistral:7b'
         >>> jr.ollama.score
         0.95
+        >>> judge.close()
 
-        >>> from qc_bench import Judge
+        >>> from llm_judge import Judge
         >>> judge = Judge(
         ...     openai=False,
         ...     anthropic=False,
@@ -1703,7 +1706,7 @@ class Judge:
         ...     mt_lang="German",
         ... )
         >>> type(jr)
-        <class 'qc_bench._judge.JudgeResult'>
+        <class 'llm_judge._judge.JudgeResult'>
         >>> jr.openai is None
         True
         >>> jr.anthropic is None
@@ -1713,11 +1716,12 @@ class Judge:
         >>> jr.ollama is None
         False
         >>> type(jr.ollama)
-        <class 'qc_bench._judge.JudgeModelResult'>
+        <class 'llm_judge._judge.JudgeModelResult'>
         >>> jr.ollama.model
-        'gemma4:e4b'
+        'qwen3.8:27b'
         >>> jr.ollama.score
         1.0
+        >>> judge.close()
         """
         if self.closed:
             logger.error("Judge instance is already closed!")
