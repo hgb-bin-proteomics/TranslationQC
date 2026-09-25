@@ -34,3 +34,12 @@ def test2():
         )
         == 0
     )
+
+
+@pytest.mark.localonly
+def test3():
+    from llm_judge import main
+
+    assert (
+        main(["-i", "data/test.csv", "-o", "data/test_annotated.csv", "--ollama"]) == 0
+    )
