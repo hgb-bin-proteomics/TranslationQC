@@ -223,7 +223,7 @@ __marimo__/
 /html
 docs/modules.rst
 docs/main.rst
-docs/qc_bench.rst
+docs/llm_judge.rst
 
 # Environment files
 env.json

@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.abspath("../src/"))
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = "TranslationQC"
+project = "LLM Judge"
 copyright = "2026, Bioinformatics Research Group, FH OÖ Campus Hagenberg"
 author = "Micha Johannes Birklbauer"
 version = "0.1"
@@ -39,16 +39,16 @@ python_maximum_signature_line_length = 88
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_title = "TranslationQC"
-html_short_title = "TranslationQC"
+html_title = "LLM Judge"
+html_short_title = "LLM Judge"
 html_logo = "icons/icon.png"
 html_favicon = "icons/favicon.png"
 html_theme = "pydata_sphinx_theme"
 html_show_sourcelink = False
 html_theme_options = {
     "logo": {
-        "alt_text": "TranslationQC logo",
-        "text": "TranslationQC",
+        "alt_text": "LLM Judge logo",
+        "text": "LLM Judge",
         "image_light": "icons/icon.png",
         "image_dark": "icons/icon.png",
     },
