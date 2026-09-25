@@ -80,7 +80,7 @@ r"""Performs quality estimation for a list of translations using LLMs from OpenA
 
 Examples
 --------
->>> from qc_bench import Judge
+>>> from llm_judge import Judge
 >>> judge = Judge(openai=False, anthropic=False, google=False, ollama="mistral:7b")
 >>> jr = judge.score(
 ...     src="The mitochondria is the powerhouse of the cell.",
@@ -89,7 +89,7 @@ Examples
 ...     mt_lang="German",
 ... )
 >>> type(jr)
-<class 'qc_bench._judge.JudgeResult'>
+<class 'llm_judge._judge.JudgeResult'>
 >>> jr.openai is None
 True
 >>> jr.anthropic is None
@@ -99,13 +99,13 @@ True
 >>> jr.ollama is None
 False
 >>> type(jr.ollama)
-<class 'qc_bench._judge.JudgeModelResult'>
+<class 'llm_judge._judge.JudgeModelResult'>
 >>> jr.ollama.model
 'mistral:7b'
 >>> jr.ollama.score
 0.95
 
->>> from qc_bench import Judge
+>>> from llm_judge import Judge
 >>> judge = Judge(
 ...     openai=False,
 ...     anthropic=False,
@@ -120,7 +120,7 @@ False
 ...     mt_lang="German",
 ... )
 >>> type(jr)
-<class 'qc_bench._judge.JudgeResult'>
+<class 'llm_judge._judge.JudgeResult'>
 >>> jr.openai is None
 True
 >>> jr.anthropic is None
@@ -130,7 +130,7 @@ True
 >>> jr.ollama is None
 False
 >>> type(jr.ollama)
-<class 'qc_bench._judge.JudgeModelResult'>
+<class 'llm_judge._judge.JudgeModelResult'>
 >>> jr.ollama.model
 'gemma4:e4b'
 >>> jr.ollama.score
