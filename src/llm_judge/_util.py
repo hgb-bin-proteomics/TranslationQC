@@ -78,7 +78,7 @@ def annotate_csv(
             src_lang=str(row["src_lang"]).strip(),
             mt_lang=str(row["mt_lang"]).strip(),
         )
-        json_data.append(result.model_dump_json())
+        json_data.append(result.model_dump(mode="json"))
         raw_data.append(result)
         score_openai.append(
             result.openai.score if result.openai is not None else float("nan")
