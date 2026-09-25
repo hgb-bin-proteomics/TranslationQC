@@ -45,7 +45,7 @@ def test2():
     assert jr.openai is None
     assert jr.anthropic is None
     assert jr.google is None
-    assert jr.ollama is None
+    assert jr.ollama is not None
     assert str(type(jr.ollama)) == "<class 'llm_judge._judge.JudgeModelResult'>"
     assert jr.ollama.model == "gemma4:e4b"
     assert jr.ollama.score > 0.8
