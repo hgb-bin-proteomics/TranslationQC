@@ -21,6 +21,7 @@ from ollama import ResponseError as OllamaResponseError
 from ollama import pull as pull_ollama_model
 from pydantic import BaseModel, Field, ConfigDict, computed_field
 
+from types import TracebackType
 from typing import Optional, Annotated, Any, Literal, override
 
 from ._translation import QualityEstimation
@@ -1541,6 +1542,73 @@ class Judge:
             f"The following LLM-providers are enabled for this instance: {', '.join(enabled_judges)}!"
         )
         logger.info(f"Loaded the following configuration:\n{self.config}")
+        # closed
+        self.closed = False
+
+    def close(self) -> None:
+        r"""Closes all connections and clients.
+
+        Closes all connections and all running LLM-provider clients.
+
+        Warnings
+        --------
+        This should be called at the end when the Judge instance is not longer needed!
+
+        Examples
+        --------
+        >>> from llm_judge import Judge
+        >>> with Judge(
+        ...     openai=False, anthropic=False, google=False, ollama="mistral:7b"
+        ... ) as judge:
+        >>>     jr = judge.score(
+        ...         src="The mitochondria is the powerhouse of the cell.",
+        ...         mt="Das Mitochondrium ist das Kraftwerk der Zelle.",
+        ...         src_lang="English",
+        ...         mt_lang="German",
+        ...     )
+        >>> jr.ollama.score
+        0.95
+
+        >>> from llm_judge import Judge
+        >>> judge = Judge(
+        ...     openai=False, anthropic=False, google=False, ollama="mistral:7b"
+        ... )
+        >>> jr = judge.score(
+        ...     src="The mitochondria is the powerhouse of the cell.",
+        ...     mt="Das Mitochondrium ist das Kraftwerk der Zelle.",
+        ...     src_lang="English",
+        ...     mt_lang="German",
+        ... )
+        >>> jr.ollama.score
+        0.95
+        >>> judge.close()
+        """
+        if self.closed:
+            logger.info("This instance is already closed!")
+            return
+        if self.__openai is not None:
+            self.__openai.close()
+        if self.__anthropic is not None:
+            self.__anthropic.close()
+        if self.__google is not None:
+            self.__google.close()
+        if self.__ollama is not None:
+            self.__ollama.close()
+        logger.info(
+            "Successfully closed all connections and clients for this instance!"
+        )
+        self.closed = True
+
+    def __enter__(self) -> Judge:
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        self.close()
 
     def score(self, src: str, mt: str, src_lang: str, mt_lang: str) -> JudgeResult:
         r"""Performs quality estimation using all setup LLMs for one translation.
@@ -1560,6 +1628,11 @@ class Judge:
         -------
         JudgeResult
             The results of all LLMs in a result container, see ``JudgeResult``.
+        
+        Raises
+        ------
+        RuntimeError
+            If the Judge instance is already closed.
 
         Examples
         --------
@@ -1621,6 +1694,10 @@ class Judge:
         >>> jr.ollama.score
         1.0
         """
+        if self.closed:
+            logger.error("Judge instance is already closed!")
+            raise RuntimeError("Judge instance is already closed!")
+
         return JudgeResult(
             openai=_OpenAIModel._get_openai_response(
                 client=self.__openai,

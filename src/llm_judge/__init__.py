@@ -76,6 +76,7 @@ r"""Performs quality estimation for a list of translations using LLMs from OpenA
     │ The lights are dimmable, but I…  ┆ Die Lichter sind ┆ English  ┆ German  ┆ NaN          ┆ NaN             ┆ NaN          ┆ 1.0                     │
     │                                  ┆ dimmbar, aber…   ┆          ┆         ┆              ┆                 ┆              ┆                         │
     └──────────────────────────────────┴──────────────────┴──────────┴─────────┴──────────────┴─────────────────┴──────────────┴─────────────────────────┘
+    INFO:llm_judge._judge:Successfully closed all connections and clients for this instance!
     INFO:llm_judge._main:Successfully scored and annotated all translations!
 
 Examples
@@ -104,6 +105,7 @@ False
 'mistral:7b'
 >>> jr.ollama.score
 0.95
+>>> judge.close()
 
 >>> from llm_judge import Judge
 >>> judge = Judge(
@@ -132,9 +134,10 @@ False
 >>> type(jr.ollama)
 <class 'llm_judge._judge.JudgeModelResult'>
 >>> jr.ollama.model
-'gemma4:e4b'
+'qwen3.8:27b'
 >>> jr.ollama.score
 1.0
+>>> judge.close()
 """
 
 __all__ = [

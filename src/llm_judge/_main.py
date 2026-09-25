@@ -128,6 +128,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         )
         print(df)
 
+        judge.close()
         logger.info("Successfully scored and annotated all translations!")
     except Exception as _e:
         logger.exception("An error occurred while running the script!")
